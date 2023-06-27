@@ -3,6 +3,7 @@ package containerd
 import (
 	"context"
 	"fmt"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"os"
@@ -92,8 +93,7 @@ func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (_ str
 }
 
 func (manager) Stop(context.Context, string) (shim.StopStatus, error) {
-	//TODO implement me
-	panic("implement me")
+	return shim.StopStatus{}, errdefs.ErrNotImplemented
 }
 
 func newCommand(ctx context.Context, id, containerdAddress string, debug bool) (*exec.Cmd, error) {

@@ -3,6 +3,7 @@ package containerd
 import (
 	"context"
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/pkg/shutdown"
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/ttrpc"
@@ -22,86 +23,69 @@ func (s service) RegisterTTRPC(server *ttrpc.Server) error {
 }
 
 func (s service) State(ctx context.Context, request *taskAPI.StateRequest) (*taskAPI.StateResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest) (*taskAPI.CreateTaskResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Start(ctx context.Context, request *taskAPI.StartRequest) (*taskAPI.StartResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*taskAPI.DeleteResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Pids(ctx context.Context, request *taskAPI.PidsRequest) (*taskAPI.PidsResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Pause(ctx context.Context, request *taskAPI.PauseRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Resume(ctx context.Context, request *taskAPI.ResumeRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Checkpoint(ctx context.Context, request *taskAPI.CheckpointTaskRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Exec(ctx context.Context, request *taskAPI.ExecProcessRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) CloseIO(ctx context.Context, request *taskAPI.CloseIORequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Update(ctx context.Context, request *taskAPI.UpdateTaskRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*taskAPI.WaitResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Stats(ctx context.Context, request *taskAPI.StatsRequest) (*taskAPI.StatsResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) (*taskAPI.ConnectResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
 
 func (s service) Shutdown(ctx context.Context, request *taskAPI.ShutdownRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, errdefs.ErrNotImplemented
 }
