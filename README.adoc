@@ -11,11 +11,11 @@ What rund provides is:
 * TODO: Cleanup of orphan processes via https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/killpg.2.html[`killpg(2)`]
 * TODO: OCI Runtime Specification compatibility (to the extent is is possible on macOS)
 
-## Prerequisites
+== Prerequisites
 
 * MacOS Catalina or newer
-* Disable [System Identity Protection](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection).
-SIP [doesn't allow](https://github.com/containerd/containerd/discussions/5525#discussioncomment-2685649) to `chroot`.
+* Disable https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection[System Identity Protection].
+SIP https://github.com/containerd/containerd/discussions/5525#discussioncomment-2685649[doesn't allow] to `chroot`.
 
 == Usage
 
