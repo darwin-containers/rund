@@ -64,5 +64,5 @@ cd ..
 
 # Aaaand... Run your first macOS container!
 cd containerd
-sudo go run cmd/ctr/main.go run --rm --runtime $(pwd)/../rund/containerd-shim-rund-v1 docker.io/library/macos:latest my_container echo "Hello from macOS container ^_^"
+sudo go run cmd/ctr/main.go run --rm --runtime "$(pwd)/../rund/containerd-shim-rund-v1" docker.io/library/macos:latest my_container echo "Hello from macOS container ^_^"
 ----
