@@ -3,13 +3,13 @@ package containerd
 import (
 	"context"
 	"fmt"
-	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"os"
 	"os/exec"
 	"runtime"
 	"syscall"
+	"time"
 )
 
 func NewManager(name string) shim.Manager {
@@ -92,8 +92,11 @@ func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (_ str
 	return address, nil
 }
 
-func (manager) Stop(context.Context, string) (shim.StopStatus, error) {
-	return shim.StopStatus{}, errdefs.ErrNotImplemented
+func (manager) Stop(ctx context.Context, id string) (shim.StopStatus, error) {
+	return shim.StopStatus{
+		ExitedAt: time.Now(),
+		// TODO
+	}, nil
 }
 
 func newCommand(ctx context.Context, id, containerdAddress string, debug bool) (*exec.Cmd, error) {

@@ -8,5 +8,5 @@ import (
 )
 
 func main() {
-	shim.RunManager(context.Background(), containerd.NewManager("io.containerd.rund.v2"))
+	shim.Run(context.Background(), containerd.NewManager("io.containerd.rund.v2"))
 }
