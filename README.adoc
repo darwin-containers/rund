@@ -45,7 +45,6 @@ sudo go run cmd/containerd/main.go
 # Without stopping containerd, from a SEPARATE terminal
 # Import macOS docker image into containerd
 cd containerd
-sudo go run cmd/ctr/main.go image import
 sudo go run cmd/ctr/main.go image import --all-platforms ../macos.tgz
 cd ..
 
