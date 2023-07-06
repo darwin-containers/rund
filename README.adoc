@@ -1,0 +1,55 @@
+= rund
+:source-highlighter: rouge
+
+rund is an experimental https://containerd.io[containerd] shim for macOS.
+
+rund doesn't offer the usual level of container isolation that is achievable on other OSes due to limited macOS kernel API.
+
+What rund provides is:
+
+* Filesystem isolation via https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chroot.2.html[`chroot(2)`]
+* TODO: Cleanup of orphan processes via https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/killpg.2.html[`killpg(2)`]
+* TODO: OCI Runtime Specification compatibility (to the extent is is possible on macOS)
+
+== Usage
+
+[source,shell]
+----
+# Install macos-jail project that will create macOS chroot rootfs
+git clone https://github.com/slonopotamus/macos-jail
+cd macos-jail
+pip3 install -e . --user
+cd ..
+# Build macOS rootfs in jail_dir
+sudo python3 -m macosjail jail_dir
+
+# Download go-porter
+git clone https://github.com/bozaro/go-porter
+cd go-porter
+# Build macOS docker image
+sudo go run cli/porter/main.go build ../jail_dir -f ../macos-jail/Dockerfile -t macos
+sudo go run cli/porter/main.go save macos > ../macos.tgz
+
+# Download containerd
+git clone https://github.com/containerd/containerd
+cd containerd
+# Run containerd
+sudo go run cmd/containerd/main.go
+
+# Without stopping containerd, from a SEPARATE terminal
+# Import macOS docker image into containerd
+cd containerd
+sudo go run cmd/ctr/main.go image import
+sudo go run cmd/ctr/main.go image import --all-platforms ../macos.tgz
+cd ..
+
+# Build rund
+git clone https://github.com/slonopotamus/rund
+cd rund
+go build cmd/containerd-shim-rund-v2.go
+cd ..
+
+# Aaaand... Run your first macOS container!
+cd containerd
+sudo go run cmd/ctr/main.go run --rm --runtime $(pwd)/../rund/containerd-shim-rund-v2 docker.io/library/macos:latest my_container echo "Hello from macOS container ^_^"
+----
