@@ -3,7 +3,7 @@
 
 rund is an experimental https://containerd.io[containerd] shim for macOS.
 
-WARNING: This project is far from complete and is missing CRITICAL parts, like cleanup of more than one container process. Do not use in production.
+WARNING: This project is far from complete and is missing CRITICAL parts, like cleanup of multiple container processes. Do not use in production.
 
 rund doesn't offer the usual level of container isolation that is achievable on other OSes due to limited macOS kernel API.
 
