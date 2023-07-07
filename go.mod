@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/containerd/containerd v1.7.1-0.20230703133900-330273d2362f
 	github.com/containerd/ttrpc v1.2.2
-	google.golang.org/protobuf v1.29.1
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
