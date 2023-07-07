@@ -11,10 +11,10 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
 	"github.com/containerd/containerd/pkg/shutdown"
+	ptypes "github.com/containerd/containerd/protobuf/types"
 	"github.com/containerd/containerd/runtime"
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/ttrpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"os"
 	"os/exec"
 	"path"
@@ -237,22 +237,22 @@ func (s *service) Pids(ctx context.Context, request *taskAPI.PidsRequest) (*task
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) Pause(ctx context.Context, request *taskAPI.PauseRequest) (*emptypb.Empty, error) {
+func (s *service) Pause(ctx context.Context, request *taskAPI.PauseRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("PAUSE")
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) Resume(ctx context.Context, request *taskAPI.ResumeRequest) (*emptypb.Empty, error) {
+func (s *service) Resume(ctx context.Context, request *taskAPI.ResumeRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("RESUME")
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) Checkpoint(ctx context.Context, request *taskAPI.CheckpointTaskRequest) (*emptypb.Empty, error) {
+func (s *service) Checkpoint(ctx context.Context, request *taskAPI.CheckpointTaskRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("CHECKPOINT")
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*emptypb.Empty, error) {
+func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("KILL")
 
 	if request.ExecID != "" {
@@ -271,25 +271,25 @@ func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*empt
 		_ = c.process.Kill()
 	}
 
-	return &emptypb.Empty{}, nil
+	return &ptypes.Empty{}, nil
 }
 
-func (s *service) Exec(ctx context.Context, request *taskAPI.ExecProcessRequest) (*emptypb.Empty, error) {
+func (s *service) Exec(ctx context.Context, request *taskAPI.ExecProcessRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("EXEC")
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyRequest) (*emptypb.Empty, error) {
+func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("RESIZEPTY")
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) CloseIO(ctx context.Context, request *taskAPI.CloseIORequest) (*emptypb.Empty, error) {
+func (s *service) CloseIO(ctx context.Context, request *taskAPI.CloseIORequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("CLOSEIO")
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) Update(ctx context.Context, request *taskAPI.UpdateTaskRequest) (*emptypb.Empty, error) {
+func (s *service) Update(ctx context.Context, request *taskAPI.UpdateTaskRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("UPDATE")
 	return nil, errdefs.ErrNotImplemented
 }
@@ -359,17 +359,17 @@ func (s *service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) 
 	}, nil
 }
 
-func (s *service) Shutdown(ctx context.Context, request *taskAPI.ShutdownRequest) (*emptypb.Empty, error) {
+func (s *service) Shutdown(ctx context.Context, request *taskAPI.ShutdownRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Warn("SHUTDOWN")
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if len(s.containers) > 0 {
-		return &emptypb.Empty{}, nil
+		return &ptypes.Empty{}, nil
 	}
 
 	s.sd.Shutdown()
 
-	return &emptypb.Empty{}, nil
+	return &ptypes.Empty{}, nil
 }

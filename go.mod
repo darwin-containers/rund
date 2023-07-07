@@ -3,9 +3,8 @@ module github.com/slonopotamus/rund
 go 1.20
 
 require (
-	github.com/containerd/containerd v1.7.1-0.20230703133900-330273d2362f
+	github.com/containerd/containerd v1.7.1-0.20230706191712-3c250cb508aa
 	github.com/containerd/ttrpc v1.2.2
-	google.golang.org/protobuf v1.31.0
 )
 
 require (
@@ -36,11 +35,14 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
 	google.golang.org/grpc v1.53.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
