@@ -7,7 +7,6 @@ import (
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"os"
 	"os/exec"
-	"runtime"
 	"syscall"
 	"time"
 )
@@ -71,14 +70,10 @@ func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (_ str
 
 	cmd.ExtraFiles = append(cmd.ExtraFiles, f)
 
-	runtime.LockOSThread()
-
 	if err := cmd.Start(); err != nil {
 		_ = f.Close()
 		return "", err
 	}
-
-	runtime.UnlockOSThread()
 
 	defer func() {
 		if retErr != nil {
