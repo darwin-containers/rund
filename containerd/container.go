@@ -4,9 +4,11 @@ import (
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
 	"io"
 	"os"
+	"sync"
 )
 
 type container struct {
+	mu      sync.Mutex
 	process *os.Process
 	request *taskAPI.CreateTaskRequest
 	stdin   io.ReadWriteCloser
@@ -14,10 +16,15 @@ type container struct {
 	stderr  io.ReadWriteCloser
 }
 
-func (c *container) getPid() int {
-	if c.process == nil {
-		return 0
-	} else {
-		return c.process.Pid
-	}
+func (c *container) setProcessL(process *os.Process) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.process = process
+}
+
+func (c *container) getProcessL() *os.Process {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.process
 }
