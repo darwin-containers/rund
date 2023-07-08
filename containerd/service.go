@@ -181,7 +181,19 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	cmd := exec.Command("/usr/sbin/chroot", c.request.Rootfs[0].Source)
+	// TODO: This is wrong
+	rootfs := c.request.Rootfs[0].Source
+
+	varRun := path.Join(rootfs, "var", "run")
+	if err := os.MkdirAll(varRun, 775); err != nil {
+		return nil, err
+	}
+
+	if err := os.Link("/var/run/mDNSResponder", path.Join(varRun, "mDNSResponder")); err != nil {
+		return nil, err
+	}
+
+	cmd := exec.Command("/usr/sbin/chroot", rootfs)
 	cmd.Args = append(cmd.Args, spec.Process.Args...)
 	cmd.Stdin = c.stdin
 	cmd.Stdout = c.stdout
