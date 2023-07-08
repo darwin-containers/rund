@@ -59,10 +59,10 @@ cd ..
 # Build rund
 git clone https://github.com/slonopotamus/rund
 cd rund
-go build cmd/*.go
+go build -o bin/ cmd/*.go
 cd ..
 
 # Aaaand... Run your first macOS container!
 cd containerd
-sudo go run cmd/ctr/main.go run --rm --runtime "$(pwd)/../rund/containerd-shim-rund-v1" docker.io/library/macos:latest my_container echo "Hello from macOS container ^_^"
+sudo go run cmd/ctr/main.go run --rm --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" docker.io/library/macos:latest my_container echo "Hello from macOS container ^_^"
 ----
