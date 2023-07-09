@@ -25,6 +25,9 @@ import (
 	"syscall"
 )
 
+// UnmountFlags Flags to use when unmounting filesystems. Workaround against mds.
+const UnmountFlags = unix.MNT_FORCE
+
 func NewTaskService(ctx context.Context, publisher shim.Publisher, sd shutdown.Service) (taskAPI.TaskService, error) {
 	s := service{
 		containers: make(map[string]*container),
@@ -77,6 +80,7 @@ func (s *service) RegisterTTRPC(server *ttrpc.Server) error {
 
 func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*taskAPI.StateResponse, error) {
 	log.G(ctx).WithField("request", request).Info("STATE")
+	defer log.G(ctx).Info("STATE_DONE")
 
 	if request.ExecID != "" {
 		return nil, errdefs.ErrNotImplemented
@@ -93,11 +97,9 @@ func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*ta
 	}, nil
 }
 
-// TODO: Doesn't work yet
-const useMounts = false
-
 func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest) (_ *taskAPI.CreateTaskResponse, retErr error) {
 	log.G(ctx).WithField("request", request).Info("CREATE")
+	defer log.G(ctx).Info("CREATE_DONE")
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -107,58 +109,50 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		return nil, err
 	}
 
+	pio, err := setupIO(ctx, request.Stdin, request.Stdout, request.Stderr)
+	defer func() {
+		if err != nil {
+			_ = pio.Close()
+		}
+	}()
+
 	c := &container{
 		spec:   spec,
 		status: task.Status_CREATED,
+		rootfs: path.Join(request.Bundle, "rootfs"),
+		io:     pio,
 	}
 
-	if useMounts {
-		c.rootfs = path.Join(request.Bundle, "rootfs")
+	var mounts []mount.Mount
+	for _, m := range request.Rootfs {
+		mounts = append(mounts, mount.Mount{
+			Type:    m.Type,
+			Source:  m.Source,
+			Target:  m.Target,
+			Options: m.Options,
+		})
+	}
 
-		var mounts []mount.Mount
-		for _, m := range request.Rootfs {
-			mounts = append(mounts, mount.Mount{
-				Type:    m.Type,
-				Source:  m.Source,
-				Target:  m.Target,
-				Options: m.Options,
-			})
-		}
-
-		defer func() {
-			if retErr != nil {
-				if err := mount.UnmountMounts(mounts, c.rootfs, 0); err != nil {
-					log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
-				}
+	defer func() {
+		if retErr != nil {
+			if err := mount.UnmountMounts(mounts, c.rootfs, 0); err != nil {
+				log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
 			}
-		}()
-
-		if err := mount.All(mounts, c.rootfs); err != nil {
-			return nil, fmt.Errorf("failed to mount rootfs component: %w", err)
 		}
-	} else {
-		c.rootfs = request.Rootfs[0].Source
+	}()
+
+	if err := mount.All(mounts, c.rootfs); err != nil {
+		return nil, fmt.Errorf("failed to mount rootfs component: %w", err)
 	}
 
-	if _, err := os.Stat(request.Stdin); err == nil {
-		c.stdin, err = os.OpenFile(request.Stdin, syscall.O_RDONLY|syscall.O_NONBLOCK, 0)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if _, err := os.Stat(request.Stdout); err == nil {
-		c.stdout, err = os.OpenFile(request.Stdout, syscall.O_WRONLY, 0)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if _, err := os.Stat(request.Stderr); err == nil {
-		c.stderr, err = os.OpenFile(request.Stderr, syscall.O_WRONLY, 0)
-		if err != nil {
-			return nil, err
-		}
+	c.cmd = exec.Command("chroot", c.rootfs)
+	c.cmd.Args = append(c.cmd.Args, c.spec.Process.Args...)
+	c.cmd.Env = c.spec.Process.Env
+	c.cmd.Stdin = pio.stdin
+	c.cmd.Stdout = pio.stdout
+	c.cmd.Stderr = pio.stderr
+	c.cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
 	}
 
 	s.containers[request.ID] = c
@@ -197,6 +191,7 @@ func readSpec(path string) (*oci.Spec, error) {
 
 func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*taskAPI.StartResponse, error) {
 	log.G(ctx).WithField("request", request).Info("START")
+	defer log.G(ctx).Info("START_DONE")
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -215,35 +210,30 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	if err := os.Link("/var/run/mDNSResponder", path.Join(varRun, "mDNSResponder")); err != nil {
+	// TODO: Can't do it this way, cross-device link
+	// if err := os.Link("/var/run/mDNSResponder", path.Join(varRun, "mDNSResponder")); err != nil {
+	//	return nil, err
+	// }
+
+	if err := c.cmd.Start(); err != nil {
 		return nil, err
 	}
 
-	cmd := exec.Command("/usr/sbin/chroot", c.rootfs)
-	cmd.Args = append(cmd.Args, c.spec.Process.Args...)
-	cmd.Env = c.spec.Process.Env
-	cmd.Stdin = c.stdin
-	cmd.Stdout = c.stdout
-	cmd.Stderr = c.stderr
-
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	c.setStatusL(cmd.Process, task.Status_RUNNING)
+	c.setStatusL(task.Status_RUNNING)
 
 	s.events <- &events.TaskStart{
 		ContainerID: request.ID,
-		Pid:         uint32(cmd.Process.Pid),
+		Pid:         uint32(c.cmd.Process.Pid),
 	}
 
 	return &taskAPI.StartResponse{
-		Pid: uint32(cmd.Process.Pid),
+		Pid: uint32(c.cmd.Process.Pid),
 	}, nil
 }
 
 func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*taskAPI.DeleteResponse, error) {
 	log.G(ctx).WithField("request", request).Info("DELETE")
+	defer log.G(ctx).Info("DELETE_DONE")
 
 	if request.ExecID != "" {
 		return nil, errdefs.ErrNotImplemented
@@ -257,7 +247,9 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 		return nil, err
 	}
 
-	if err := mount.UnmountRecursive(c.rootfs, 0); err != nil {
+	_ = c.io.Close()
+
+	if err := mount.UnmountRecursive(c.rootfs, UnmountFlags); err != nil {
 		log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
 	}
 
@@ -269,7 +261,7 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 	}
 
 	var pid int
-	if p, _ := c.getStatusL(); p != nil {
+	if p := c.cmd.Process; p != nil {
 		pid = p.Pid
 	}
 
@@ -301,6 +293,7 @@ func (s *service) Checkpoint(ctx context.Context, request *taskAPI.CheckpointTas
 
 func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Info("KILL")
+	defer log.G(ctx).Info("KILL_DONE")
 
 	if request.ExecID != "" {
 		return nil, errdefs.ErrNotImplemented
@@ -311,7 +304,7 @@ func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptyp
 		return nil, err
 	}
 
-	if p, _ := c.getStatusL(); p != nil {
+	if p := c.cmd.Process; p != nil {
 		_ = unix.Kill(p.Pid, syscall.Signal(request.Signal))
 	}
 
@@ -340,6 +333,7 @@ func (s *service) Update(ctx context.Context, request *taskAPI.UpdateTaskRequest
 
 func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*taskAPI.WaitResponse, error) {
 	log.G(ctx).WithField("request", request).Info("WAIT")
+	defer log.G(ctx).Info("WAIT_DONE")
 
 	if request.ExecID != "" {
 		return nil, errdefs.ErrNotImplemented
@@ -350,25 +344,21 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 		return nil, err
 	}
 
-	process, _ := c.getStatusL()
+	c.setStatusL(task.Status_STOPPED)
 
-	if process == nil {
+	defer func(io stdio) {
+		_ = io.Close()
+	}(c.io)
+
+	if c.cmd.Process == nil {
 		return nil, errdefs.ErrFailedPrecondition
 	}
 
-	wait, _ := process.Wait()
-	c.setStatusL(process, task.Status_STOPPED)
+	// TODO: handle error?
+	wait, _ := c.cmd.Process.Wait()
 
-	if c.stdin != nil {
-		_ = c.stdin.Close()
-	}
-
-	if c.stdout != nil {
-		_ = c.stdout.Close()
-	}
-
-	if c.stderr != nil {
-		_ = c.stderr.Close()
+	if c.io.stdin != nil {
+		_ = c.io.stdin.Close()
 	}
 
 	s.events <- &events.TaskExit{
@@ -391,10 +381,11 @@ func (s *service) Stats(ctx context.Context, request *taskAPI.StatsRequest) (*ta
 
 func (s *service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) (*taskAPI.ConnectResponse, error) {
 	log.G(ctx).WithField("request", request).Info("CONNECT")
+	defer log.G(ctx).Info("CONNECT_DONE")
 
 	var pid int
 	if c, err := s.getContainerL(request.ID); err == nil {
-		if p, _ := c.getStatusL(); p != nil {
+		if p := c.cmd.Process; p != nil {
 			pid = p.Pid
 		}
 	}
@@ -407,6 +398,7 @@ func (s *service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) 
 
 func (s *service) Shutdown(ctx context.Context, request *taskAPI.ShutdownRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Info("SHUTDOWN")
+	defer log.G(ctx).Info("SHUTDOWN_DONE")
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

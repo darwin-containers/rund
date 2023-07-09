@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/containerd/containerd v1.7.1-0.20230706191712-3c250cb508aa
+	github.com/containerd/fifo v1.1.0
 	github.com/containerd/ttrpc v1.2.2
 	golang.org/x/sys v0.8.0
 )
@@ -15,7 +16,6 @@ require (
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/continuity v0.4.2-0.20230616210509-1e0d26eb2381 // indirect
-	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -46,3 +46,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+replace github.com/containerd/containerd => github.com/slonopotamus/containerd v1.5.1-0.20230709200901-a91c5f5bb3cb

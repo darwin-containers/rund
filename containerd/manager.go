@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"syscall"
 	"time"
 )
 
@@ -100,7 +99,7 @@ func (manager) Stop(ctx context.Context, id string) (shim.StopStatus, error) {
 	bundlePath := filepath.Join(filepath.Dir(cwd), id)
 	rootfs := path.Join(bundlePath, "rootfs")
 
-	if err := mount.UnmountRecursive(rootfs, 0); err != nil {
+	if err := mount.UnmountRecursive(rootfs, UnmountFlags); err != nil {
 		log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
 	}
 
@@ -132,9 +131,6 @@ func newCommand(ctx context.Context, id, containerdAddress string, debug bool) (
 	}
 
 	cmd := exec.Command(self, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
 
 	return cmd, nil
 }
