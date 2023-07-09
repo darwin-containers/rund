@@ -3,10 +3,14 @@ package containerd
 import (
 	"context"
 	"fmt"
+	"github.com/containerd/containerd/log"
+	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"os"
 	"os/exec"
+	"path"
+	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -88,6 +92,18 @@ func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (_ str
 }
 
 func (manager) Stop(ctx context.Context, id string) (shim.StopStatus, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return shim.StopStatus{}, err
+	}
+
+	bundlePath := filepath.Join(filepath.Dir(cwd), id)
+	rootfs := path.Join(bundlePath, "rootfs")
+
+	if err := mount.UnmountRecursive(rootfs, 0); err != nil {
+		log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
+	}
+
 	return shim.StopStatus{
 		ExitedAt: time.Now(),
 		// TODO

@@ -3,11 +3,13 @@ package containerd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/containerd/containerd/api/events"
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
 	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/log"
+	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
 	"github.com/containerd/containerd/pkg/shutdown"
@@ -65,11 +67,7 @@ func (s *service) getContainerL(id string) (*container, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	c := s.containers[id]
-	if c == nil {
-		return nil, errdefs.ToGRPCf(errdefs.ErrNotFound, "container not created")
-	}
-	return c, nil
+	return s.getContainer(id)
 }
 
 func (s *service) RegisterTTRPC(server *ttrpc.Server) error {
@@ -89,27 +87,57 @@ func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*ta
 		return nil, err
 	}
 
-	if p := c.getProcessL(); p != nil {
-		return &taskAPI.StateResponse{
-			Status: task.Status_RUNNING,
-			// TODO
-		}, nil
-	} else {
-		return &taskAPI.StateResponse{
-			Status: task.Status_STOPPED,
-			// TODO
-		}, nil
-	}
+	return &taskAPI.StateResponse{
+		Status: c.status,
+		// TODO
+	}, nil
 }
 
-func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest) (*taskAPI.CreateTaskResponse, error) {
+// TODO: Doesn't work yet
+const useMounts = false
+
+func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest) (_ *taskAPI.CreateTaskResponse, retErr error) {
 	log.G(ctx).WithField("request", request).Info("CREATE")
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	spec, err := readSpec(path.Join(request.Bundle, "config.json"))
+	if err != nil {
+		return nil, err
+	}
+
 	c := &container{
-		request: request,
+		spec:   spec,
+		status: task.Status_CREATED,
+	}
+
+	if useMounts {
+		c.rootfs = path.Join(request.Bundle, "rootfs")
+
+		var mounts []mount.Mount
+		for _, m := range request.Rootfs {
+			mounts = append(mounts, mount.Mount{
+				Type:    m.Type,
+				Source:  m.Source,
+				Target:  m.Target,
+				Options: m.Options,
+			})
+		}
+
+		defer func() {
+			if retErr != nil {
+				if err := mount.UnmountMounts(mounts, c.rootfs, 0); err != nil {
+					log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
+				}
+			}
+		}()
+
+		if err := mount.All(mounts, c.rootfs); err != nil {
+			return nil, fmt.Errorf("failed to mount rootfs component: %w", err)
+		}
+	} else {
+		c.rootfs = request.Rootfs[0].Source
 	}
 
 	if _, err := os.Stat(request.Stdin); err == nil {
@@ -182,15 +210,7 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	spec, err := readSpec(path.Join(c.request.Bundle, "config.json"))
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: This is wrong
-	rootfs := c.request.Rootfs[0].Source
-
-	varRun := path.Join(rootfs, "var", "run")
+	varRun := path.Join(c.rootfs, "var", "run")
 	if err := os.MkdirAll(varRun, 775); err != nil {
 		return nil, err
 	}
@@ -199,8 +219,9 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	cmd := exec.Command("/usr/sbin/chroot", rootfs)
-	cmd.Args = append(cmd.Args, spec.Process.Args...)
+	cmd := exec.Command("/usr/sbin/chroot", c.rootfs)
+	cmd.Args = append(cmd.Args, c.spec.Process.Args...)
+	cmd.Env = c.spec.Process.Env
 	cmd.Stdin = c.stdin
 	cmd.Stdout = c.stdout
 	cmd.Stderr = c.stderr
@@ -209,10 +230,7 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	c.process = cmd.Process
-	if err != nil {
-		return nil, err
-	}
+	c.setStatusL(cmd.Process, task.Status_RUNNING)
 
 	s.events <- &events.TaskStart{
 		ContainerID: request.ID,
@@ -239,14 +257,19 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 		return nil, err
 	}
 
+	if err := mount.UnmountRecursive(c.rootfs, 0); err != nil {
+		log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
+	}
+
 	delete(s.containers, request.ID)
+
 	s.events <- &events.TaskDelete{
 		ContainerID: request.ID,
 		// TODO
 	}
 
 	var pid int
-	if p := c.getProcessL(); p != nil {
+	if p, _ := c.getStatusL(); p != nil {
 		pid = p.Pid
 	}
 
@@ -288,7 +311,7 @@ func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptyp
 		return nil, err
 	}
 
-	if p := c.getProcessL(); p != nil {
+	if p, _ := c.getStatusL(); p != nil {
 		_ = unix.Kill(p.Pid, syscall.Signal(request.Signal))
 	}
 
@@ -327,14 +350,14 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 		return nil, err
 	}
 
-	process := c.getProcessL()
+	process, _ := c.getStatusL()
 
 	if process == nil {
 		return nil, errdefs.ErrFailedPrecondition
 	}
 
 	wait, _ := process.Wait()
-	c.setProcessL(nil)
+	c.setStatusL(process, task.Status_STOPPED)
 
 	if c.stdin != nil {
 		_ = c.stdin.Close()
@@ -371,7 +394,7 @@ func (s *service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) 
 
 	var pid int
 	if c, err := s.getContainerL(request.ID); err == nil {
-		if p := c.getProcessL(); p != nil {
+		if p, _ := c.getStatusL(); p != nil {
 			pid = p.Pid
 		}
 	}
