@@ -6,7 +6,7 @@ require (
 	github.com/containerd/containerd v1.7.1-0.20230706191712-3c250cb508aa
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/ttrpc v1.2.2
-	golang.org/x/sys v0.8.0
+	golang.org/x/sys v0.10.0
 )
 
 require (
