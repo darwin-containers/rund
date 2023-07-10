@@ -18,6 +18,8 @@ import (
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/ttrpc"
 	"golang.org/x/sys/unix"
+	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -189,6 +191,10 @@ func readSpec(path string) (*oci.Spec, error) {
 	return &spec, nil
 }
 
+// TODO: Doesn't work yet
+// Possibly a bindfs issue: https://github.com/mpartel/bindfs/issues/132
+const useDNS = false
+
 func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*taskAPI.StartResponse, error) {
 	log.G(ctx).WithField("request", request).Info("START")
 	defer log.G(ctx).Info("START_DONE")
@@ -205,15 +211,33 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	varRun := path.Join(c.rootfs, "var", "run")
-	if err := os.MkdirAll(varRun, 775); err != nil {
-		return nil, err
-	}
+	if useDNS {
+		varRun := path.Join(c.rootfs, "var", "run")
+		if err := os.MkdirAll(varRun, 775); err != nil {
+			return nil, err
+		}
 
-	// TODO: Can't do it this way, cross-device link
-	// if err := os.Link("/var/run/mDNSResponder", path.Join(varRun, "mDNSResponder")); err != nil {
-	//	return nil, err
-	// }
+		listenSock, err := net.Listen("unix", path.Join(varRun, "mDNSResponder"))
+		if err != nil {
+			return nil, err
+		}
+
+		go func() {
+			for {
+				con, err := listenSock.Accept()
+				if err != nil {
+					return
+				}
+
+				pipe, err := net.Dial("unix", "/var/run/mDNSResponder")
+				if err != nil {
+					return
+				}
+				go io.Copy(con, pipe)
+				go io.Copy(pipe, con)
+			}
+		}()
+	}
 
 	if err := c.cmd.Start(); err != nil {
 		return nil, err
@@ -354,11 +378,15 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 		return nil, errdefs.ErrFailedPrecondition
 	}
 
-	// TODO: handle error?
-	wait, _ := c.cmd.Process.Wait()
+	wait, err := c.cmd.Process.Wait()
 
-	if c.io.stdin != nil {
-		_ = c.io.stdin.Close()
+	if err != nil {
+		s.events <- &events.TaskExit{
+			ContainerID: request.ID,
+			// TODO
+		}
+
+		return nil, err
 	}
 
 	s.events <- &events.TaskExit{
