@@ -2,7 +2,6 @@ package containerd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/containerd/containerd/api/events"
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
@@ -106,7 +105,7 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	spec, err := readSpec(path.Join(request.Bundle, "config.json"))
+	spec, err := oci.ReadSpec(path.Join(request.Bundle, oci.ConfigFilename))
 	if err != nil {
 		return nil, err
 	}
@@ -172,23 +171,6 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	}
 
 	return &taskAPI.CreateTaskResponse{}, nil
-}
-
-func readSpec(path string) (*oci.Spec, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer func(f *os.File) {
-		_ = f.Close()
-	}(f)
-
-	var spec oci.Spec
-	if err := json.NewDecoder(f).Decode(&spec); err != nil {
-		return nil, err
-	}
-
-	return &spec, nil
 }
 
 // TODO: Doesn't work yet

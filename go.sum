@@ -103,8 +103,8 @@ github.com/prometheus/procfs v0.8.0 h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
 github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0=
 github.com/sirupsen/logrus v1.9.0/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
-github.com/slonopotamus/containerd v1.5.1-0.20230710171747-3a6f89332ff6 h1:6hdOexKFNV2316g0ns0iEjzdwIf/7ihcByzg8u2JvTs=
-github.com/slonopotamus/containerd v1.5.1-0.20230710171747-3a6f89332ff6/go.mod h1:f6IyieGaKYMQjWJS/4cq6OBTyHDq4XO8OvwSzQyXEDY=
+github.com/slonopotamus/containerd v1.5.1-0.20230711170425-5d8086403322 h1:GnBxjjei2f66YC7dmZbxj2wd6QsOVJvIWyocs3GnwXA=
+github.com/slonopotamus/containerd v1.5.1-0.20230711170425-5d8086403322/go.mod h1:f6IyieGaKYMQjWJS/4cq6OBTyHDq4XO8OvwSzQyXEDY=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=

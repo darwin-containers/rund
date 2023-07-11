@@ -47,4 +47,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace github.com/containerd/containerd => github.com/slonopotamus/containerd v1.5.1-0.20230710171747-3a6f89332ff6
+replace github.com/containerd/containerd => github.com/slonopotamus/containerd v1.5.1-0.20230711170425-5d8086403322
