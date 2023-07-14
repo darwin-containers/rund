@@ -21,30 +21,21 @@ What rund provides is:
 
 == Prerequisites
 
-* MacOS Catalina or newer
 * Disable https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection[System Identity Protection].
 SIP https://github.com/containerd/containerd/discussions/5525#discussioncomment-2685649[doesn't allow] to `chroot`.
-* Install https://osxfuse.github.io[macFUSE]
+* Install https://osxfuse.github.io[macFUSE] or https://www.fuse-t.org[fuse-t]
 * Install https://bindfs.org/downloads/[bindfs] using https://github.com/mpartel/bindfs/issues/100#issuecomment-870699085[build instructions]
 
 == Usage
 
 [source,shell]
 ----
-# Install macos-jail project that will create macOS chroot rootfs
-git clone https://github.com/slonopotamus/macos-jail
-cd macos-jail
-pip3 install -e . --user
+# Download rund
+git clone https://github.com/slonopotamus/rund
+cd rund
+# Build rund
+go build -o bin/ cmd/*.go
 cd ..
-# Build macOS rootfs in jail_dir
-sudo python3 -m macosjail jail_dir
-
-# Download go-porter
-git clone https://github.com/bozaro/go-porter
-cd go-porter
-# Build macOS docker image
-sudo go run cli/porter/main.go build ../jail_dir -f ../macos-jail/Dockerfile -t macos
-sudo go run cli/porter/main.go save macos > ../macos.tgz
 
 # Download containerd
 git clone https://github.com/containerd/containerd
@@ -54,18 +45,14 @@ sudo go run cmd/containerd/main.go
 
 # Continue from a SEPARATE terminal, without stopping containerd
 
-# Import macOS docker image into containerd
+# Download base image
 cd containerd
-sudo go run cmd/ctr/main.go image import --all-platforms ../macos.tgz
-cd ..
-
-# Build rund
-git clone https://github.com/slonopotamus/rund
-cd rund
-go build -o bin/ cmd/*.go
-cd ..
+sudo go run cmd/ctr/main.go image pull ghcr.io/slonopotamus/macos-jail/ventura:latest
 
 # Aaaand... Run your first macOS container!
-cd containerd
-sudo go run cmd/ctr/main.go run --rm --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" docker.io/library/macos:latest my_container echo "Hello from macOS container ^_^"
+sudo go run cmd/ctr/main.go run --rm --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/slonopotamus/macos-jail/ventura:latest my_container echo "Hello from macOS container ^_^"
 ----
+
+NOTE: Prebuilt image is currently only available for macOS Ventura
+
+If you want to build image from scratch, see https://github.com/slonopotamus/macos-jail[macos-jail] project.
