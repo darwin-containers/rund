@@ -3,9 +3,11 @@ module github.com/slonopotamus/rund
 go 1.20
 
 require (
+	github.com/containerd/console v1.0.3
 	github.com/containerd/containerd v1.7.1-0.20230706191712-3c250cb508aa
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/ttrpc v1.2.2
+	github.com/hashicorp/go-multierror v1.1.1
 	golang.org/x/sys v0.10.0
 )
 
@@ -14,7 +16,6 @@ require (
 	github.com/Microsoft/hcsshim v0.10.0-rc.8 // indirect
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
-	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/continuity v0.4.2-0.20230616210509-1e0d26eb2381 // indirect
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
@@ -23,6 +24,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
@@ -47,4 +49,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace github.com/containerd/containerd => github.com/slonopotamus/containerd v1.5.1-0.20230711170425-5d8086403322
+replace github.com/containerd/containerd => github.com/slonopotamus/containerd v1.5.1-0.20230715092048-aac97a6f815f

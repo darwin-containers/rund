@@ -9,32 +9,31 @@ import (
 )
 
 type stdio struct {
-	stdin  io.ReadWriteCloser
-	stdout io.ReadWriteCloser
-	stderr io.ReadWriteCloser
+	stdin  io.ReadCloser
+	stdout io.WriteCloser
+	stderr io.WriteCloser
 }
 
-func setupIO(ctx context.Context, stdin, stdout, stderr string) (stdio, error) {
-	s := stdio{}
+func setupIO(ctx context.Context, stdin, stdout, stderr string) (io stdio, _ error) {
 	if _, err := os.Stat(stdin); err == nil {
-		s.stdin, err = fifo.OpenFifo(ctx, stdin, syscall.O_RDONLY|syscall.O_NONBLOCK, 0)
+		io.stdin, err = fifo.OpenFifo(ctx, stdin, syscall.O_RDONLY|syscall.O_NONBLOCK, 0)
 		if err != nil {
-			return s, err
+			return io, err
 		}
 	}
 	if _, err := os.Stat(stdout); err == nil {
-		s.stdout, err = fifo.OpenFifo(ctx, stdout, syscall.O_WRONLY, 0)
+		io.stdout, err = fifo.OpenFifo(ctx, stdout, syscall.O_WRONLY, 0)
 		if err != nil {
-			return s, err
+			return io, err
 		}
 	}
 	if _, err := os.Stat(stderr); err == nil {
-		s.stderr, err = fifo.OpenFifo(ctx, stderr, syscall.O_WRONLY, 0)
+		io.stderr, err = fifo.OpenFifo(ctx, stderr, syscall.O_WRONLY, 0)
 		if err != nil {
-			return s, err
+			return io, err
 		}
 	}
-	return s, nil
+	return io, nil
 }
 
 func (s stdio) Close() error {

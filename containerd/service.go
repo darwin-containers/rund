@@ -3,6 +3,7 @@ package containerd
 import (
 	"context"
 	"fmt"
+	"github.com/containerd/console"
 	"github.com/containerd/containerd/api/events"
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
 	"github.com/containerd/containerd/api/types/task"
@@ -25,9 +26,6 @@ import (
 	"sync"
 	"syscall"
 )
-
-// UnmountFlags Flags to use when unmounting filesystems. Workaround against mds.
-const UnmountFlags = unix.MNT_FORCE
 
 func NewTaskService(ctx context.Context, publisher shim.Publisher, sd shutdown.Service) (taskAPI.TaskService, error) {
 	s := service{
@@ -92,8 +90,20 @@ func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*ta
 		return nil, err
 	}
 
+	var pid int
+	if c, err := s.getContainerL(request.ID); err == nil {
+		if p := c.cmd.Process; p != nil {
+			pid = p.Pid
+		}
+	}
+
 	return &taskAPI.StateResponse{
-		Status: c.status,
+		ID:       request.ID,
+		Bundle:   c.bundlePath,
+		Pid:      uint32(pid),
+		Status:   c.status,
+		Terminal: c.console != nil,
+		ExecID:   request.ExecID,
 		// TODO
 	}, nil
 }
@@ -110,18 +120,56 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		return nil, err
 	}
 
-	pio, err := setupIO(ctx, request.Stdin, request.Stdout, request.Stderr)
+	c := &container{
+		spec:       spec,
+		bundlePath: request.Bundle,
+		rootfs:     path.Join(request.Bundle, "rootfs"),
+		status:     task.Status_CREATED,
+	}
+
 	defer func() {
-		if err != nil {
-			_ = pio.Close()
+		if retErr != nil {
+			if err := c.destroy(); err != nil {
+				log.G(ctx).WithError(err).Warn("failed to cleanup container")
+			}
 		}
 	}()
 
-	c := &container{
-		spec:   spec,
-		status: task.Status_CREATED,
-		rootfs: path.Join(request.Bundle, "rootfs"),
-		io:     pio,
+	c.io, err = setupIO(ctx, request.Stdin, request.Stdout, request.Stderr)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: handle request.Terminal
+	/*if request.Terminal {
+		var slavePath string
+		c.console, slavePath, err = console.NewPty()
+		if err != nil {
+			return nil, err
+		}
+	}*/
+
+	if len(spec.Process.Args) <= 0 {
+		// TODO: How to handle this properly?
+		spec.Process.Args = []string{"/bin/sh"}
+		// return nil, fmt.Errorf("args must not be empty")
+	}
+
+	c.cmd = exec.Command(c.spec.Process.Args[0])
+	if len(c.spec.Process.Args) > 1 {
+		c.cmd.Args = c.spec.Process.Args[1:]
+	}
+	c.cmd.Dir = c.spec.Process.Cwd
+	c.cmd.Env = c.spec.Process.Env
+	c.cmd.Stdin = c.io.stdin
+	c.cmd.Stdout = c.io.stdout
+	c.cmd.Stderr = c.io.stderr
+	c.cmd.SysProcAttr = &syscall.SysProcAttr{
+		Chroot: c.rootfs,
+		Credential: &syscall.Credential{
+			Uid: c.spec.Process.User.UID,
+			Gid: c.spec.Process.User.GID,
+		},
 	}
 
 	var mounts []mount.Mount
@@ -134,38 +182,21 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		})
 	}
 
-	defer func() {
-		if retErr != nil {
-			if err := mount.UnmountMounts(mounts, c.rootfs, 0); err != nil {
-				log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
-			}
-		}
-	}()
-
-	if err := mount.All(mounts, c.rootfs); err != nil {
+	if err = mount.All(mounts, c.rootfs); err != nil {
 		return nil, fmt.Errorf("failed to mount rootfs component: %w", err)
-	}
-
-	c.cmd = exec.Command("chroot", c.rootfs)
-	c.cmd.Args = append(c.cmd.Args, c.spec.Process.Args...)
-	c.cmd.Env = c.spec.Process.Env
-	c.cmd.Stdin = pio.stdin
-	c.cmd.Stdout = pio.stdout
-	c.cmd.Stderr = pio.stderr
-	c.cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
 	}
 
 	s.containers[request.ID] = c
 
 	s.events <- &events.TaskCreate{
 		ContainerID: request.ID,
-		Bundle:      request.Bundle,
+		Bundle:      c.bundlePath,
 		Rootfs:      request.Rootfs,
 		IO: &events.TaskIO{
-			Stdin:  request.Stdin,
-			Stdout: request.Stdout,
-			Stderr: request.Stderr,
+			Stdin:    request.Stdin,
+			Stdout:   request.Stdout,
+			Stderr:   request.Stderr,
+			Terminal: c.console != nil,
 		},
 		Checkpoint: request.Checkpoint,
 	}
@@ -174,7 +205,6 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 }
 
 // TODO: Doesn't work yet
-// Possibly a bindfs issue: https://github.com/mpartel/bindfs/issues/132
 const useDNS = false
 
 func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*taskAPI.StartResponse, error) {
@@ -253,10 +283,8 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 		return nil, err
 	}
 
-	_ = c.io.Close()
-
-	if err := mount.UnmountRecursive(c.rootfs, UnmountFlags); err != nil {
-		log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
+	if err := c.destroy(); err != nil {
+		log.G(ctx).WithError(err).Warn("failed to cleanup container")
 	}
 
 	delete(s.containers, request.ID)
@@ -324,7 +352,30 @@ func (s *service) Exec(ctx context.Context, request *taskAPI.ExecProcessRequest)
 
 func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Info("RESIZEPTY")
-	return nil, errdefs.ErrNotImplemented
+	defer log.G(ctx).Info("RESIZEPTY_DONE")
+
+	if request.ExecID != "" {
+		return nil, errdefs.ErrNotImplemented
+	}
+
+	c, err := s.getContainer(request.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	con := c.getConsole()
+	if con == nil {
+		return &ptypes.Empty{}, nil
+	}
+
+	if err = con.Resize(console.WinSize{
+		Width:  uint16(request.Width),
+		Height: uint16(request.Height),
+	}); err != nil {
+		return nil, err
+	}
+
+	return &ptypes.Empty{}, nil
 }
 
 func (s *service) CloseIO(ctx context.Context, request *taskAPI.CloseIORequest) (*ptypes.Empty, error) {
@@ -360,6 +411,7 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 		return nil, errdefs.ErrFailedPrecondition
 	}
 
+	// TODO: Are we handling trailing I/O here properly?
 	wait, err := c.cmd.Process.Wait()
 
 	if err != nil {
