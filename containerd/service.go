@@ -156,9 +156,7 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	}
 
 	c.cmd = exec.Command(c.spec.Process.Args[0])
-	if len(c.spec.Process.Args) > 1 {
-		c.cmd.Args = c.spec.Process.Args[1:]
-	}
+	c.cmd.Args = c.spec.Process.Args
 	c.cmd.Dir = c.spec.Process.Cwd
 	c.cmd.Env = c.spec.Process.Env
 	c.cmd.Stdin = c.io.stdin

@@ -50,7 +50,7 @@ cd containerd
 sudo go run cmd/ctr/main.go image pull ghcr.io/slonopotamus/macos-jail/ventura:latest
 
 # Aaaand... Run your first macOS container!
-sudo go run cmd/ctr/main.go run --rm --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/slonopotamus/macos-jail/ventura:latest my_container echo "Hello from macOS container ^_^"
+sudo go run cmd/ctr/main.go run --rm --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/slonopotamus/macos-jail/ventura:latest my_container /bin/sh -c 'echo "Hello from macOS container ^_^"'
 ----
 
 NOTE: Prebuilt image is currently only available for macOS Ventura

@@ -11,6 +11,8 @@ import (
 	"sync"
 )
 
+const unmountFlags = unix.MNT_FORCE
+
 type container struct {
 	// These fields are readonly and filled when container is created
 	spec       *oci.Spec
@@ -35,7 +37,7 @@ func (c *container) destroy() (retErr error) {
 		}
 	}
 
-	if err := mount.UnmountRecursive(c.rootfs, unix.MNT_FORCE); err != nil {
+	if err := mount.UnmountRecursive(c.rootfs, unmountFlags); err != nil {
 		retErr = multierror.Append(retErr, err)
 	}
 

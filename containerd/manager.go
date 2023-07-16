@@ -99,7 +99,7 @@ func (manager) Stop(ctx context.Context, id string) (shim.StopStatus, error) {
 	bundlePath := filepath.Join(filepath.Dir(cwd), id)
 	rootfs := path.Join(bundlePath, "rootfs")
 
-	if err := mount.UnmountRecursive(rootfs, UnmountFlags); err != nil {
+	if err := mount.UnmountRecursive(rootfs, unmountFlags); err != nil {
 		log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
 	}
 
