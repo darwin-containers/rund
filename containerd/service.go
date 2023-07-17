@@ -102,7 +102,7 @@ func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*ta
 		Bundle:   c.bundlePath,
 		Pid:      uint32(pid),
 		Status:   c.status,
-		Terminal: c.console != nil,
+		Terminal: c.spec.Process.Terminal,
 		ExecID:   request.ExecID,
 		// TODO
 	}, nil
@@ -141,7 +141,7 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	}
 
 	// TODO: handle request.Terminal
-	/*if request.Terminal {
+	/*if c.spec.Process.Terminal {
 		var slavePath string
 		c.console, slavePath, err = console.NewPty()
 		if err != nil {
@@ -194,7 +194,7 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 			Stdin:    request.Stdin,
 			Stdout:   request.Stdout,
 			Stderr:   request.Stderr,
-			Terminal: c.console != nil,
+			Terminal: c.spec.Process.Terminal,
 		},
 		Checkpoint: request.Checkpoint,
 	}
