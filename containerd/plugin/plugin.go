@@ -4,7 +4,7 @@ import (
 	"github.com/containerd/containerd/pkg/shutdown"
 	"github.com/containerd/containerd/plugin"
 	"github.com/containerd/containerd/runtime/v2/shim"
-	"github.com/slonopotamus/rund/containerd"
+	"github.com/macOScontainers/rund/containerd"
 )
 
 func init() {

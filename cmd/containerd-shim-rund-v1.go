@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"github.com/containerd/containerd/runtime/v2/shim"
-	"github.com/slonopotamus/rund/containerd"
-	_ "github.com/slonopotamus/rund/containerd/plugin"
+	"github.com/macOScontainers/rund/containerd"
+	_ "github.com/macOScontainers/rund/containerd/plugin"
 )
 
 func main() {

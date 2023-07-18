@@ -1,4 +1,4 @@
-module github.com/slonopotamus/rund
+module github.com/macOScontainers/rund
 
 go 1.20
 
@@ -50,4 +50,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace github.com/containerd/containerd => github.com/slonopotamus/containerd v1.5.1-0.20230718204310-f71d3e86cacd
+replace github.com/containerd/containerd => github.com/macOScontainers/containerd v1.5.1-0.20230718204310-f71d3e86cacd
