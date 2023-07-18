@@ -209,12 +209,12 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 	log.G(ctx).WithField("request", request).Info("START")
 	defer log.G(ctx).Info("START_DONE")
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if request.ExecID != "" {
 		return nil, errdefs.ErrNotImplemented
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	c, err := s.getContainer(request.ID)
 	if err != nil {
