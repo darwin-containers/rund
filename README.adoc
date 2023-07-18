@@ -1,6 +1,6 @@
 = rund
 :project-handle: rund
-:uri-project: https://github.com/macOScontainers/{project-handle}
+:uri-project: https://github.com/macoscontainers/{project-handle}
 :uri-ci: {uri-project}/actions?query=branch%3Amain
 :source-highlighter: rouge
 
