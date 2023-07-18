@@ -356,12 +356,12 @@ func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyReque
 		return nil, errdefs.ErrNotImplemented
 	}
 
-	c, err := s.getContainer(request.ID)
+	c, err := s.getContainerL(request.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	con := c.getConsole()
+	con := c.getConsoleL()
 	if con == nil {
 		return &ptypes.Empty{}, nil
 	}

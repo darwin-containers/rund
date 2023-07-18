@@ -58,7 +58,7 @@ func (c *container) getStatusL() task.Status {
 	return c.status
 }
 
-func (c *container) getConsole() console.Console {
+func (c *container) getConsoleL() console.Console {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
