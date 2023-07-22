@@ -1,12 +1,12 @@
 package containerd
 
 import (
-	"github.com/containerd/console"
 	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/oci"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sys/unix"
+	"os"
 	"os/exec"
 	"sync"
 )
@@ -19,7 +19,7 @@ type container struct {
 	bundlePath string
 	rootfs     string
 	io         stdio
-	console    console.Console
+	console    *os.File
 
 	mu     sync.Mutex
 	cmd    *exec.Cmd
@@ -58,7 +58,7 @@ func (c *container) getStatusL() task.Status {
 	return c.status
 }
 
-func (c *container) getConsoleL() console.Console {
+func (c *container) getConsoleL() *os.File {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

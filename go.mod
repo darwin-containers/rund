@@ -3,10 +3,10 @@ module github.com/macOScontainers/rund
 go 1.20
 
 require (
-	github.com/containerd/console v1.0.3
 	github.com/containerd/containerd v1.7.1-0.20230718202420-e26b669ba9a9
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/ttrpc v1.2.2
+	github.com/creack/pty v1.1.18
 	github.com/hashicorp/go-multierror v1.1.1
 	golang.org/x/sys v0.10.0
 )
@@ -16,6 +16,7 @@ require (
 	github.com/Microsoft/hcsshim v0.10.0-rc.9 // indirect
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
+	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/continuity v0.4.2-0.20230616210509-1e0d26eb2381 // indirect
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect

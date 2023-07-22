@@ -3,7 +3,6 @@ package containerd
 import (
 	"context"
 	"fmt"
-	"github.com/containerd/console"
 	"github.com/containerd/containerd/api/events"
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
 	"github.com/containerd/containerd/api/types/task"
@@ -17,6 +16,7 @@ import (
 	"github.com/containerd/containerd/runtime"
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"github.com/containerd/ttrpc"
+	"github.com/creack/pty"
 	"golang.org/x/sys/unix"
 	"io"
 	"net"
@@ -103,8 +103,7 @@ func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*ta
 		Pid:      uint32(pid),
 		Status:   c.status,
 		Terminal: c.spec.Process.Terminal,
-		ExecID:   request.ExecID,
-		// TODO
+		ExecID:   request.ExecID, // TODO
 	}, nil
 }
 
@@ -140,15 +139,6 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		return nil, err
 	}
 
-	// TODO: handle request.Terminal
-	/*if c.spec.Process.Terminal {
-		var slavePath string
-		c.console, slavePath, err = console.NewPty()
-		if err != nil {
-			return nil, err
-		}
-	}*/
-
 	if len(spec.Process.Args) <= 0 {
 		// TODO: How to handle this properly?
 		spec.Process.Args = []string{"/bin/sh"}
@@ -159,9 +149,6 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	c.cmd.Args = c.spec.Process.Args
 	c.cmd.Dir = c.spec.Process.Cwd
 	c.cmd.Env = c.spec.Process.Env
-	c.cmd.Stdin = c.io.stdin
-	c.cmd.Stdout = c.io.stdout
-	c.cmd.Stderr = c.io.stderr
 	c.cmd.SysProcAttr = &syscall.SysProcAttr{
 		Chroot: c.rootfs,
 		Credential: &syscall.Credential{
@@ -249,8 +236,33 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		}()
 	}
 
-	if err := c.cmd.Start(); err != nil {
-		return nil, err
+	if c.spec.Process.Terminal {
+		// TODO: I'd like to use containerd/console package instead
+		// But see https://github.com/containerd/console/issues/79
+		var consoleSize *pty.Winsize
+		if c.spec.Process.ConsoleSize != nil {
+			consoleSize = &pty.Winsize{
+				Cols: uint16(c.spec.Process.ConsoleSize.Width),
+				Rows: uint16(c.spec.Process.ConsoleSize.Height),
+			}
+		}
+
+		c.console, err = pty.StartWithSize(c.cmd, consoleSize)
+		if err != nil {
+			return nil, err
+		}
+
+		go io.Copy(c.console, c.io.stdin)
+		go io.Copy(c.io.stdout, c.console)
+	} else {
+		c.cmd.Stdin = c.io.stdin
+		c.cmd.Stdout = c.io.stdout
+		c.cmd.Stderr = c.io.stderr
+
+		err = c.cmd.Start()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	c.setStatusL(task.Status_RUNNING)
@@ -288,8 +300,7 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 	delete(s.containers, request.ID)
 
 	s.events <- &events.TaskDelete{
-		ContainerID: request.ID,
-		// TODO
+		ContainerID: request.ID, // TODO
 	}
 
 	var pid int
@@ -298,8 +309,7 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 	}
 
 	return &taskAPI.DeleteResponse{
-		Pid: uint32(pid),
-		// TODO
+		Pid: uint32(pid), // TODO
 	}, nil
 }
 
@@ -366,10 +376,7 @@ func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyReque
 		return &ptypes.Empty{}, nil
 	}
 
-	if err = con.Resize(console.WinSize{
-		Width:  uint16(request.Width),
-		Height: uint16(request.Height),
-	}); err != nil {
+	if err = pty.Setsize(con, &pty.Winsize{Cols: uint16(request.Width), Rows: uint16(request.Height)}); err != nil {
 		return nil, err
 	}
 
@@ -414,8 +421,7 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 
 	if err != nil {
 		s.events <- &events.TaskExit{
-			ContainerID: request.ID,
-			// TODO
+			ContainerID: request.ID, // TODO
 		}
 
 		return nil, err
@@ -424,13 +430,11 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 	s.events <- &events.TaskExit{
 		ContainerID: request.ID,
 		Pid:         uint32(wait.Pid()),
-		ExitStatus:  uint32(wait.ExitCode()),
-		// TODO
+		ExitStatus:  uint32(wait.ExitCode()), // TODO
 	}
 
 	return &taskAPI.WaitResponse{
-		ExitStatus: uint32(wait.ExitCode()),
-		// TODO
+		ExitStatus: uint32(wait.ExitCode()), // TODO
 	}, nil
 }
 
