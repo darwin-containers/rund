@@ -255,6 +255,7 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		go io.Copy(c.console, c.io.stdin)
 		go io.Copy(c.io.stdout, c.console)
 	} else {
+		c.cmd.SysProcAttr.Setpgid = true
 		c.cmd.Stdin = c.io.stdin
 		c.cmd.Stdout = c.io.stdout
 		c.cmd.Stderr = c.io.stderr
@@ -347,7 +348,11 @@ func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptyp
 	}
 
 	if p := c.cmd.Process; p != nil {
-		_ = unix.Kill(p.Pid, syscall.Signal(request.Signal))
+		pid := p.Pid
+		if c.console == nil {
+			pid = -pid
+		}
+		_ = unix.Kill(pid, syscall.Signal(request.Signal))
 	}
 
 	return &ptypes.Empty{}, nil
@@ -417,7 +422,7 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 	}
 
 	// TODO: Are we handling trailing I/O here properly?
-	wait, err := c.cmd.Process.Wait()
+	w, err := wait(c.cmd.Process)
 
 	if err != nil {
 		s.events <- &events.TaskExit{
@@ -429,12 +434,12 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 
 	s.events <- &events.TaskExit{
 		ContainerID: request.ID,
-		Pid:         uint32(wait.Pid()),
-		ExitStatus:  uint32(wait.ExitCode()), // TODO
+		Pid:         uint32(w.Pid()),
+		ExitStatus:  uint32(w.ExitCode()), // TODO
 	}
 
 	return &taskAPI.WaitResponse{
-		ExitStatus: uint32(wait.ExitCode()), // TODO
+		ExitStatus: uint32(w.ExitCode()), // TODO
 	}, nil
 }
 
