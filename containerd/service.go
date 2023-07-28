@@ -348,11 +348,7 @@ func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptyp
 	}
 
 	if p := c.cmd.Process; p != nil {
-		pid := p.Pid
-		if c.console == nil {
-			pid = -pid
-		}
-		_ = unix.Kill(pid, syscall.Signal(request.Signal))
+		_ = unix.Kill(-p.Pid, syscall.Signal(request.Signal))
 	}
 
 	return &ptypes.Empty{}, nil

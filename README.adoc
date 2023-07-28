@@ -16,8 +16,8 @@ rund doesn't offer the usual level of container isolation that is achievable on 
 What rund provides:
 
 * Filesystem isolation via https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chroot.2.html[`chroot(2)`]
-* TODO: Cleanup of orphan processes via https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/killpg.2.html[`killpg(2)`]
-* TODO: OCI Runtime Specification compatibility (to the extent it is possible on macOS)
+* Cleanup of container processes using process group
+* OCI Runtime Specification compatibility (to the extent it is possible on macOS)
 
 == Prerequisites
 
