@@ -189,8 +189,21 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	return &taskAPI.CreateTaskResponse{}, nil
 }
 
-// TODO: Doesn't work yet
-const useDNS = false
+func unixSocketCopy(from, to *net.UnixConn) error {
+	for {
+		// TODO: How we determine buffer size that is guaranteed to be enough?
+		b := make([]byte, 1024)
+		oob := make([]byte, 1024)
+		n, oobn, _, addr, err := from.ReadMsgUnix(b, oob)
+		if err != nil {
+			return err
+		}
+		_, _, err = to.WriteMsgUnix(b[0:n], oob[0:oobn], addr)
+		if err != nil {
+			return err
+		}
+	}
+}
 
 func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*taskAPI.StartResponse, error) {
 	log.G(ctx).WithField("request", request).Info("START")
@@ -208,33 +221,34 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	if useDNS {
-		varRun := path.Join(c.rootfs, "var", "run")
-		if err := os.MkdirAll(varRun, 775); err != nil {
-			return nil, err
-		}
-
-		listenSock, err := net.Listen("unix", path.Join(varRun, "mDNSResponder"))
-		if err != nil {
-			return nil, err
-		}
-
-		go func() {
-			for {
-				con, err := listenSock.Accept()
-				if err != nil {
-					return
-				}
-
-				pipe, err := net.Dial("unix", "/var/run/mDNSResponder")
-				if err != nil {
-					return
-				}
-				go io.Copy(con, pipe)
-				go io.Copy(pipe, con)
-			}
-		}()
+	if err = os.MkdirAll(path.Join(c.rootfs, "var"), 755); err != nil {
+		return nil, err
 	}
+
+	if err = os.MkdirAll(path.Join(c.rootfs, "var", "run"), 775); err != nil {
+		return nil, err
+	}
+
+	listenSock, err := net.ListenUnix("unix", &net.UnixAddr{Name: path.Join(c.rootfs, "var", "run", "mDNSResponder"), Net: "unix"})
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for {
+			con, err := listenSock.AcceptUnix()
+			if err != nil {
+				return
+			}
+
+			pipe, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "/var/run/mDNSResponder", Net: "unix"})
+			if err != nil {
+				return
+			}
+			go unixSocketCopy(con, pipe)
+			go unixSocketCopy(pipe, con)
+		}
+	}()
 
 	if c.spec.Process.Terminal {
 		// TODO: I'd like to use containerd/console package instead
