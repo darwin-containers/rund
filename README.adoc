@@ -8,9 +8,6 @@ image:{uri-project}/workflows/CI/badge.svg?branch=main[GitHub Actions,link={uri-
 
 rund is an experimental https://containerd.io[containerd] shim for running *macOS* containers on macOS.
 
-WARNING: This project is far from complete and is missing CRITICAL parts, like cleanup of multiple container processes.
-Do not use in production.
-
 rund doesn't offer the usual level of container isolation that is achievable on other OSes due to limited macOS kernel API.
 
 What rund provides:
