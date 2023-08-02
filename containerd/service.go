@@ -198,7 +198,7 @@ func unixSocketCopy(from, to *net.UnixConn) error {
 		if err != nil {
 			return err
 		}
-		_, _, err = to.WriteMsgUnix(b[0:n], oob[0:oobn], addr)
+		_, _, err = to.WriteMsgUnix(b[:n], oob[:oobn], addr)
 		if err != nil {
 			return err
 		}
