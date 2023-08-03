@@ -1,10 +1,9 @@
-package plugin
+package containerd
 
 import (
 	"github.com/containerd/containerd/pkg/shutdown"
 	"github.com/containerd/containerd/plugin"
 	"github.com/containerd/containerd/runtime/v2/shim"
-	"github.com/macOScontainers/rund/containerd"
 )
 
 func init() {
@@ -24,7 +23,7 @@ func init() {
 			if err != nil {
 				return nil, err
 			}
-			return containerd.NewTaskService(ic.Context, pp.(shim.Publisher), ss.(shutdown.Service))
+			return NewTaskService(ic.Context, pp.(shim.Publisher), ss.(shutdown.Service))
 		},
 	})
 
