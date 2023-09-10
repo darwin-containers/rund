@@ -112,7 +112,22 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	log.G(ctx).WithField("request", request).Info("CREATE")
 	defer log.G(ctx).Info("CREATE_DONE")
 
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
 	rootfs, err := mount.CanonicalizePath(path.Join(request.Bundle, "rootfs"))
+	if err != nil {
+		return nil, err
+	}
+
+	if err = os.MkdirAll(path.Join(rootfs, "var", "run"), 755); err != nil {
+		return nil, err
+	}
+
+	// Workaround for 104-char limit of UNIX socket path
+	dnsSocketPath, err := filepath.Rel(wd, path.Join(rootfs, "var", "run", "mDNSResponder"))
 	if err != nil {
 		return nil, err
 	}
@@ -126,10 +141,11 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	}
 
 	c := &container{
-		spec:       spec,
-		bundlePath: request.Bundle,
-		rootfs:     rootfs,
-		status:     task.Status_CREATED,
+		spec:          spec,
+		bundlePath:    request.Bundle,
+		rootfs:        rootfs,
+		dnsSocketPath: dnsSocketPath,
+		status:        task.Status_CREATED,
 	}
 
 	defer func() {
@@ -219,11 +235,6 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, errdefs.ErrNotImplemented
 	}
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -232,25 +243,12 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	if err = os.MkdirAll(path.Join(c.rootfs, "var"), 755); err != nil {
-		return nil, err
-	}
-
-	if err = os.MkdirAll(path.Join(c.rootfs, "var", "run"), 775); err != nil {
-		return nil, err
-	}
-
-	// Workaround for 104-char limit of UNIX socket path
-	dnsSocketPath, err := filepath.Rel(wd, path.Join(c.rootfs, "var", "run", "mDNSResponder"))
+	dnsSocket, err := net.ListenUnix("unix", &net.UnixAddr{Name: c.dnsSocketPath, Net: "unix"})
 	if err != nil {
 		return nil, err
 	}
 
-	dnsSocket, err := net.ListenUnix("unix", &net.UnixAddr{Name: dnsSocketPath, Net: "unix"})
-	if err != nil {
-		return nil, err
-	}
-
+	// TODO: We should stop this somehow?
 	go func() {
 		for {
 			con, err := dnsSocket.AcceptUnix()

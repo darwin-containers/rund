@@ -15,11 +15,12 @@ const unmountFlags = unix.MNT_FORCE
 
 type container struct {
 	// These fields are readonly and filled when container is created
-	spec       *oci.Spec
-	bundlePath string
-	rootfs     string
-	io         stdio
-	console    *os.File
+	spec          *oci.Spec
+	bundlePath    string
+	rootfs        string
+	dnsSocketPath string
+	io            stdio
+	console       *os.File
 
 	mu     sync.Mutex
 	cmd    *exec.Cmd
@@ -36,6 +37,9 @@ func (c *container) destroy() (retErr error) {
 			retErr = multierror.Append(retErr, err)
 		}
 	}
+
+	// Remove socket file to avoid continuity "failed to create irregular file" error during multiple Dockerfile  `RUN` steps
+	_ = os.Remove(c.dnsSocketPath)
 
 	if err := mount.UnmountRecursive(c.rootfs, unmountFlags); err != nil {
 		retErr = multierror.Append(retErr, err)
