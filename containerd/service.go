@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"sync"
 	"syscall"
 )
@@ -111,6 +112,11 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	log.G(ctx).WithField("request", request).Info("CREATE")
 	defer log.G(ctx).Info("CREATE_DONE")
 
+	rootfs, err := mount.CanonicalizePath(path.Join(request.Bundle, "rootfs"))
+	if err != nil {
+		return nil, err
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -122,7 +128,7 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	c := &container{
 		spec:       spec,
 		bundlePath: request.Bundle,
-		rootfs:     path.Join(request.Bundle, "rootfs"),
+		rootfs:     rootfs,
 		status:     task.Status_CREATED,
 	}
 
@@ -213,6 +219,11 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, errdefs.ErrNotImplemented
 	}
 
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -229,14 +240,20 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	listenSock, err := net.ListenUnix("unix", &net.UnixAddr{Name: path.Join(c.rootfs, "var", "run", "mDNSResponder"), Net: "unix"})
+	// Workaround for 104-char limit of UNIX socket path
+	dnsSocketPath, err := filepath.Rel(wd, path.Join(c.rootfs, "var", "run", "mDNSResponder"))
+	if err != nil {
+		return nil, err
+	}
+
+	dnsSocket, err := net.ListenUnix("unix", &net.UnixAddr{Name: dnsSocketPath, Net: "unix"})
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
 		for {
-			con, err := listenSock.AcceptUnix()
+			con, err := dnsSocket.AcceptUnix()
 			if err != nil {
 				return
 			}
