@@ -23,7 +23,12 @@ SIP https://github.com/containerd/containerd/discussions/5525#discussioncomment-
 * Install https://osxfuse.github.io[macFUSE] or https://www.fuse-t.org[fuse-t]
 * Install https://bindfs.org/downloads/[bindfs] using https://github.com/mpartel/bindfs/issues/100#issuecomment-870699085[build instructions]
 
-== Usage
+[[containerd]]
+== Usage with containerd
+
+Prerequisite: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry[authenticate to GitHub Package Registry].
+
+Then, run in Terminal:
 
 [source,shell]
 ----
@@ -51,3 +56,38 @@ sudo go run cmd/ctr/main.go run --rm -t --runtime "$(pwd)/../rund/bin/containerd
 ----
 
 If you want to build image from scratch, see https://github.com/macOScontainers/macos-jail[macos-jail] project.
+
+== Usage with BuildKit
+
+Perform all the steps from <<containerd>>.
+
+Create `/etc/buildkit/buildkitd.toml` with the following contents:
+
+[source,toml]
+----
+[worker.containerd]
+runtime = "/path/to/rund/bin/containerd-shim-rund-v1"
+----
+
+Then, from terminal:
+
+[source,shell]
+----
+# Download BuildKit
+git clone https://github.com/macOScontainers/buildkit
+
+# Run BuildKit daemon
+cd buildkit
+sudo go run ./cmd/buildkitd
+
+# Continue from a SEPARATE terminal, without stopping neither containerd nor buildkitd
+
+# Create Dockerfile
+cat << EOF > Dockerfile
+FROM ghcr.io/macoscontainers/macos-jail/ventura:latest
+RUN echo "Hello, World!"
+EOF
+
+# Aaaaad, build your first macOS image
+sudo go run ./cmd/buildctl build --frontend=dockerfile.v0 --local context=. -local dockerfile=.
+----
