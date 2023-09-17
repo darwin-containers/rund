@@ -6,6 +6,7 @@ import (
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
+	"github.com/containerd/containerd/oci"
 	"github.com/containerd/containerd/runtime/v2/shim"
 	"os"
 	"os/exec"
@@ -97,10 +98,12 @@ func (manager) Stop(ctx context.Context, id string) (shim.StopStatus, error) {
 	}
 
 	bundlePath := filepath.Join(filepath.Dir(cwd), id)
-	rootfs := path.Join(bundlePath, "rootfs")
 
-	if err := mount.UnmountRecursive(rootfs, unmountFlags); err != nil {
-		log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
+	spec, err := oci.ReadSpec(path.Join(bundlePath, oci.ConfigFilename))
+	if err == nil {
+		if err = mount.UnmountRecursive(spec.Root.Path, unmountFlags); err != nil {
+			log.G(ctx).WithError(err).Warn("failed to cleanup rootfs mount")
+		}
 	}
 
 	return shim.StopStatus{

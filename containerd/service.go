@@ -117,28 +117,29 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		return nil, err
 	}
 
-	rootfs, err := mount.CanonicalizePath(path.Join(request.Bundle, "rootfs"))
-	if err != nil {
-		return nil, err
-	}
-
-	if err = os.MkdirAll(path.Join(rootfs, "var", "run"), 755); err != nil {
-		return nil, err
-	}
-
-	// Workaround for 104-char limit of UNIX socket path
-	dnsSocketPath, err := filepath.Rel(wd, path.Join(rootfs, "var", "run", "mDNSResponder"))
-	if err != nil {
-		return nil, err
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	spec, err := oci.ReadSpec(path.Join(request.Bundle, oci.ConfigFilename))
 	if err != nil {
 		return nil, err
 	}
+
+	rootfs, err := mount.CanonicalizePath(spec.Root.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = os.MkdirAll(path.Join(rootfs, "var", "run"), 0o755); err != nil {
+		return nil, err
+	}
+
+	// Workaround for 104-char limit of UNIX socket path
+	shortenedRootfsPath, err := filepath.Rel(wd, path.Join(rootfs))
+	if err != nil || len(shortenedRootfsPath) > len(rootfs) {
+		shortenedRootfsPath = rootfs
+	}
+	dnsSocketPath := path.Join(shortenedRootfsPath, "var", "run", "mDNSResponder")
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	c := &container{
 		spec:          spec,
@@ -415,7 +416,21 @@ func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyReque
 
 func (s *service) CloseIO(ctx context.Context, request *taskAPI.CloseIORequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Info("CLOSEIO")
-	return nil, errdefs.ErrNotImplemented
+
+	if request.ExecID != "" {
+		return nil, errdefs.ErrNotImplemented
+	}
+
+	c, err := s.getContainerL(request.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if stdin := c.io.stdin; stdin != nil {
+		stdin.Close()
+	}
+
+	return &ptypes.Empty{}, nil
 }
 
 func (s *service) Update(ctx context.Context, request *taskAPI.UpdateTaskRequest) (*ptypes.Empty, error) {
