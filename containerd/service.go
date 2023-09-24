@@ -146,6 +146,7 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		bundlePath:    request.Bundle,
 		rootfs:        rootfs,
 		dnsSocketPath: dnsSocketPath,
+		waitblock:     make(chan struct{}),
 		status:        task.Status_CREATED,
 	}
 
@@ -303,6 +304,22 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		Pid:         uint32(c.cmd.Process.Pid),
 	}
 
+	go func() {
+		w, _ := wait(c.cmd.Process)
+
+		c.exitStatus = uint32(w.ExitCode())
+		c.setStatusL(task.Status_STOPPED)
+		_ = c.io.Close()
+		s.events <- &events.TaskExit{
+			ContainerID: request.ID,
+			ID:          request.ID,
+			Pid:         uint32(w.Pid()),
+			ExitStatus:  c.exitStatus,
+		}
+
+		close(c.waitblock)
+	}()
+
 	return &taskAPI.StartResponse{
 		Pid: uint32(c.cmd.Process.Pid),
 	}, nil
@@ -451,35 +468,10 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 		return nil, err
 	}
 
-	c.setStatusL(task.Status_STOPPED)
-
-	defer func(io stdio) {
-		_ = io.Close()
-	}(c.io)
-
-	if c.cmd.Process == nil {
-		return nil, errdefs.ErrFailedPrecondition
-	}
-
-	// TODO: Are we handling trailing I/O here properly?
-	w, err := wait(c.cmd.Process)
-
-	if err != nil {
-		s.events <- &events.TaskExit{
-			ContainerID: request.ID, // TODO
-		}
-
-		return nil, err
-	}
-
-	s.events <- &events.TaskExit{
-		ContainerID: request.ID,
-		Pid:         uint32(w.Pid()),
-		ExitStatus:  uint32(w.ExitCode()), // TODO
-	}
+	<-c.waitblock
 
 	return &taskAPI.WaitResponse{
-		ExitStatus: uint32(w.ExitCode()), // TODO
+		ExitStatus: c.exitStatus,
 	}, nil
 }
 

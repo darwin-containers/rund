@@ -22,9 +22,11 @@ type container struct {
 	io            stdio
 	console       *os.File
 
-	mu     sync.Mutex
-	cmd    *exec.Cmd
-	status task.Status
+	mu         sync.Mutex
+	cmd        *exec.Cmd
+	waitblock  chan struct{}
+	status     task.Status
+	exitStatus uint32
 }
 
 func (c *container) destroy() (retErr error) {
