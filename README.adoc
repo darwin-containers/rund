@@ -91,3 +91,45 @@ EOF
 # Aaaaad, build your first macOS image
 sudo go run ./cmd/buildctl build --frontend=dockerfile.v0 --local context=. -local dockerfile=.
 ----
+
+=== Usage with Docker
+
+Perform all the steps from <<containerd>>.
+You don't need BuildKit daemon to use Docker on macOS.
+
+Create `/etc/docker/daemon.json` with the following contents:
+
+[source,json]
+----
+{
+  "data-root": "/private/d/",
+  "default-runtime": "/path/to/rund/bin/containerd-shim-rund-v1",
+  "runtimes": {
+    "/path/to/rund/bin/containerd-shim-rund-v1": {
+      "runtimeType": "/path/to/rund/bin/containerd-shim-rund-v1"
+    }
+  }
+}
+----
+
+Then, from terminal:
+
+[source,shell]
+----
+# Download Docker
+git clone https://github.com/macOScontainers/moby
+
+# Run Docker daemon
+cd moby
+cp vendor.mod go.mod
+cp vendor.sum go.sum
+sudo go run ./cmd/dockerd
+
+# Continue from a SEPARATE terminal, without stopping neither containerd nor dockerd
+
+# Install Docker cli
+brew install docker
+
+# Aaaand, run your first macOS native container
+sudo docker run --rm -it ghcr.io/macoscontainers/macos-jail/ventura:latest echo "Hello from macOS! ^_^"
+----
