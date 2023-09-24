@@ -92,7 +92,7 @@ EOF
 sudo go run ./cmd/buildctl build --frontend=dockerfile.v0 --local context=. -local dockerfile=.
 ----
 
-=== Usage with Docker
+== Usage with Docker
 
 Perform all the steps from <<containerd>>.
 You don't need BuildKit daemon to use Docker on macOS.
