@@ -1,7 +1,7 @@
 = Changelog
 :icons: font
 
-== Unreleased
+== 0.0.2
 
 - Add support for bind mounts
 
