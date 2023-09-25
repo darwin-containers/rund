@@ -191,6 +191,22 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		})
 	}
 
+	for _, m := range spec.Mounts {
+		if m.Type == "bind" {
+			stat, err := os.Stat(m.Source)
+			if err == nil && stat.IsDir() {
+				mounts = append(mounts, mount.Mount{
+					Type:    m.Type,
+					Source:  m.Source,
+					Target:  m.Destination,
+					Options: m.Options,
+				})
+				continue
+			}
+		}
+		log.L.Warn("skipping mount: ", m)
+	}
+
 	if err = mount.All(mounts, c.rootfs); err != nil {
 		return nil, fmt.Errorf("failed to mount rootfs component: %w", err)
 	}
