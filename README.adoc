@@ -16,6 +16,7 @@ What rund provides:
 * Cleanup of container processes using process group
 * OCI Runtime Specification compatibility (to the extent it is possible on macOS)
 * Host-network mode only
+* bind mounts
 
 == Prerequisites
 
