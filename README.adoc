@@ -20,7 +20,7 @@ What rund provides:
 
 == Prerequisites
 
-* Disable https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection[System Identity Protection].
+* Disable https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection[System Integrity Protection].
 SIP https://github.com/containerd/containerd/discussions/5525#discussioncomment-2685649[doesn't allow] to `chroot`.
 * Install https://osxfuse.github.io[macFUSE] or https://www.fuse-t.org[fuse-t]
 * Install https://bindfs.org/downloads/[bindfs] using https://github.com/mpartel/bindfs/issues/100#issuecomment-870699085[build instructions]
