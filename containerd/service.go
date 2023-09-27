@@ -183,28 +183,25 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 
 	var mounts []mount.Mount
 	for _, m := range request.Rootfs {
-		mounts = append(mounts, mount.Mount{
-			Type:    m.Type,
-			Source:  m.Source,
-			Target:  m.Target,
-			Options: m.Options,
-		})
+		mm, err := processMount(c.rootfs, m.Type, m.Source, m.Target, m.Options)
+		if err != nil {
+			return nil, err
+		}
+
+		if mm != nil {
+			mounts = append(mounts, *mm)
+		}
 	}
 
 	for _, m := range spec.Mounts {
-		if m.Type == "bind" {
-			stat, err := os.Stat(m.Source)
-			if err == nil && stat.IsDir() {
-				mounts = append(mounts, mount.Mount{
-					Type:    m.Type,
-					Source:  m.Source,
-					Target:  m.Destination,
-					Options: m.Options,
-				})
-				continue
-			}
+		mm, err := processMount(c.rootfs, m.Type, m.Source, m.Destination, m.Options)
+		if err != nil {
+			return nil, err
 		}
-		log.L.Warn("skipping mount: ", m)
+
+		if mm != nil {
+			mounts = append(mounts, *mm)
+		}
 	}
 
 	if err = mount.All(mounts, c.rootfs); err != nil {
@@ -227,6 +224,30 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	}
 
 	return &taskAPI.CreateTaskResponse{}, nil
+}
+
+func processMount(rootfs, mtype, source, target string, options []string) (*mount.Mount, error) {
+	m := &mount.Mount{
+		Type:    mtype,
+		Source:  source,
+		Target:  target,
+		Options: options,
+	}
+
+	if mtype == "bind" {
+		stat, err := os.Stat(source)
+		if err == nil && stat.IsDir() {
+			fullPath := filepath.Join(rootfs, target)
+			if err = os.MkdirAll(fullPath, 0o755); err != nil {
+				return nil, err
+			}
+
+			return m, nil
+		}
+	}
+
+	log.L.Warn("skipping mount: ", m)
+	return nil, nil
 }
 
 func unixSocketCopy(from, to *net.UnixConn) error {

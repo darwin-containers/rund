@@ -1,9 +1,13 @@
 = Changelog
 :icons: font
 
+== Unreleased
+
+- Fix bind mount failure when parent of target directory doesn't exist (#14)
+
 == 0.0.2
 
-- Add support for bind mounts
+- Add support for bind mounts (#14)
 
 == 0.0.1
 
