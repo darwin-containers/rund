@@ -9,7 +9,7 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/sys v0.12.0
+	golang.org/x/sys v0.13.0
 )
 
 require (
