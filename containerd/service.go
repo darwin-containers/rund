@@ -12,6 +12,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
 	"github.com/containerd/containerd/pkg/shutdown"
+	"github.com/containerd/containerd/protobuf"
 	ptypes "github.com/containerd/containerd/protobuf/types"
 	"github.com/containerd/containerd/runtime"
 	"github.com/containerd/containerd/runtime/v2/shim"
@@ -26,6 +27,7 @@ import (
 	"path/filepath"
 	"sync"
 	"syscall"
+	"time"
 )
 
 func NewTaskService(ctx context.Context, publisher shim.Publisher, sd shutdown.Service) (taskAPI.TaskService, error) {
@@ -92,19 +94,22 @@ func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*ta
 	}
 
 	var pid int
-	if c, err := s.getContainerL(request.ID); err == nil {
-		if p := c.cmd.Process; p != nil {
-			pid = p.Pid
-		}
+	if p := c.cmd.Process; p != nil {
+		pid = p.Pid
 	}
 
 	return &taskAPI.StateResponse{
-		ID:       request.ID,
-		Bundle:   c.bundlePath,
-		Pid:      uint32(pid),
-		Status:   c.status,
-		Terminal: c.spec.Process.Terminal,
-		ExecID:   request.ExecID, // TODO
+		ID:         request.ID,
+		Bundle:     c.bundlePath,
+		Pid:        uint32(pid),
+		Status:     c.status,
+		Stdin:      c.io.stdinPath,
+		Stdout:     c.io.stdoutPath,
+		Stderr:     c.io.stderrPath,
+		Terminal:   c.spec.Process.Terminal,
+		ExitedAt:   protobuf.ToTimestamp(c.exitedAt),
+		ExitStatus: c.exitStatus,
+		ExecID:     request.ExecID,
 	}, nil
 }
 
@@ -344,6 +349,7 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 	go func() {
 		w, _ := wait(c.cmd.Process)
 
+		c.exitedAt = time.Now()
 		c.exitStatus = uint32(w.ExitCode())
 		c.setStatusL(task.Status_STOPPED)
 		_ = c.io.Close()
@@ -351,6 +357,7 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 			ContainerID: request.ID,
 			ID:          request.ID,
 			Pid:         uint32(w.Pid()),
+			ExitedAt:    protobuf.ToTimestamp(c.exitedAt),
 			ExitStatus:  c.exitStatus,
 		}
 
@@ -508,6 +515,7 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 	<-c.waitblock
 
 	return &taskAPI.WaitResponse{
+		ExitedAt:   protobuf.ToTimestamp(c.exitedAt),
 		ExitStatus: c.exitStatus,
 	}, nil
 }

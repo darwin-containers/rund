@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"time"
 )
 
 const unmountFlags = unix.MNT_FORCE
@@ -27,6 +28,7 @@ type container struct {
 	waitblock  chan struct{}
 	status     task.Status
 	exitStatus uint32
+	exitedAt   time.Time
 }
 
 func (c *container) destroy() (retErr error) {
