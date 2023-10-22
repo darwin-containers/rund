@@ -1,6 +1,10 @@
 = Changelog
 :icons: font
 
+== 0.0.4
+
+- Add support for container exit times (#21)
+
 == 0.0.3
 
 - Fix bind mount failure when parent of target directory doesn't exist (#14)
