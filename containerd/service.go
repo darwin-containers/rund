@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/containerd/containerd/api/events"
-	taskAPI "github.com/containerd/containerd/api/runtime/task/v2"
+	taskAPI "github.com/containerd/containerd/api/runtime/task/v3"
 	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/errdefs"
-	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
@@ -16,6 +15,7 @@ import (
 	ptypes "github.com/containerd/containerd/protobuf/types"
 	"github.com/containerd/containerd/runtime"
 	"github.com/containerd/containerd/runtime/v2/shim"
+	"github.com/containerd/log"
 	"github.com/containerd/ttrpc"
 	"github.com/creack/pty"
 	"golang.org/x/sys/unix"
@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-func NewTaskService(ctx context.Context, publisher shim.Publisher, sd shutdown.Service) (taskAPI.TaskService, error) {
+func NewTaskService(ctx context.Context, publisher shim.Publisher, sd shutdown.Service) (taskAPI.TTRPCTaskService, error) {
 	s := service{
 		containers: make(map[string]*container),
 		sd:         sd,
@@ -76,7 +76,7 @@ func (s *service) getContainerL(id string) (*container, error) {
 }
 
 func (s *service) RegisterTTRPC(server *ttrpc.Server) error {
-	taskAPI.RegisterTaskService(server, s)
+	taskAPI.RegisterTTRPCTaskService(server, s)
 	return nil
 }
 

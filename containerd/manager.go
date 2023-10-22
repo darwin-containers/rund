@@ -3,11 +3,11 @@ package containerd
 import (
 	"context"
 	"fmt"
-	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/mount"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
 	"github.com/containerd/containerd/runtime/v2/shim"
+	"github.com/containerd/log"
 	"os"
 	"os/exec"
 	"path"
@@ -27,33 +27,34 @@ func (m manager) Name() string {
 	return m.name
 }
 
-func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (_ string, retErr error) {
+func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (params shim.BootstrapParams, retErr error) {
+	params.Version = 3
+	params.Protocol = "ttrpc"
+
 	cmd, err := newCommand(ctx, id, opts.Address, opts.Debug)
 	if err != nil {
-		return "", err
+		return params, err
 	}
 
 	address, err := shim.SocketAddress(ctx, opts.Address, id)
 	if err != nil {
-		return "", err
+		return params, err
 	}
 
 	socket, err := shim.NewSocket(address)
 	if err != nil {
 		if !shim.SocketEaddrinuse(err) {
-			return "", fmt.Errorf("create new shim socket: %w", err)
+			return params, fmt.Errorf("create new shim socket: %w", err)
 		}
 		if shim.CanConnect(address) {
-			if err := shim.WriteAddress("address", address); err != nil {
-				return "", fmt.Errorf("write existing socket for shim: %w", err)
-			}
-			return address, nil
+			params.Address = address
+			return params, nil
 		}
 		if err := shim.RemoveSocket(address); err != nil {
-			return "", fmt.Errorf("remove pre-existing socket: %w", err)
+			return params, fmt.Errorf("remove pre-existing socket: %w", err)
 		}
 		if socket, err = shim.NewSocket(address); err != nil {
-			return "", fmt.Errorf("try create new shim socket 2x: %w", err)
+			return params, fmt.Errorf("try create new shim socket 2x: %w", err)
 		}
 	}
 	defer func() {
@@ -63,20 +64,16 @@ func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (_ str
 		}
 	}()
 
-	if err := shim.WriteAddress("address", address); err != nil {
-		return "", err
-	}
-
 	f, err := socket.File()
 	if err != nil {
-		return "", err
+		return params, err
 	}
 
 	cmd.ExtraFiles = append(cmd.ExtraFiles, f)
 
 	if err := cmd.Start(); err != nil {
 		_ = f.Close()
-		return "", err
+		return params, err
 	}
 
 	defer func() {
@@ -88,7 +85,8 @@ func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (_ str
 		_ = cmd.Wait()
 	}()
 
-	return address, nil
+	params.Address = address
+	return params, nil
 }
 
 func (manager) Stop(ctx context.Context, id string) (shim.StopStatus, error) {
