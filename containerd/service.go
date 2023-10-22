@@ -391,17 +391,23 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 
 	delete(s.containers, request.ID)
 
-	s.events <- &events.TaskDelete{
-		ContainerID: request.ID, // TODO
+	var pid uint32
+	if p := c.cmd.Process; p != nil {
+		pid = uint32(p.Pid)
 	}
 
-	var pid int
-	if p := c.cmd.Process; p != nil {
-		pid = p.Pid
+	s.events <- &events.TaskDelete{
+		ContainerID: request.ID,
+		ExitedAt:    protobuf.ToTimestamp(c.exitedAt),
+		ExitStatus:  c.exitStatus,
+		ID:          request.ID,
+		Pid:         pid,
 	}
 
 	return &taskAPI.DeleteResponse{
-		Pid: uint32(pid), // TODO
+		ExitedAt:   protobuf.ToTimestamp(c.exitedAt),
+		ExitStatus: c.exitStatus,
+		Pid:        pid,
 	}, nil
 }
 
