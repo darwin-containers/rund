@@ -7,7 +7,7 @@ require (
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/log v0.1.0
 	github.com/containerd/ttrpc v1.2.2
-	github.com/creack/pty v1.1.18
+	github.com/creack/pty v1.1.20
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sys v0.13.0
