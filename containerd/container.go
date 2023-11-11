@@ -1,9 +1,9 @@
 package containerd
 
 import (
-	"github.com/containerd/containerd/api/types/task"
-	"github.com/containerd/containerd/mount"
-	"github.com/containerd/containerd/oci"
+	"github.com/containerd/containerd/v2/api/types/task"
+	"github.com/containerd/containerd/v2/mount"
+	"github.com/containerd/containerd/v2/oci"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sys/unix"
 	"os"
