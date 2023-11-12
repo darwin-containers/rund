@@ -132,10 +132,6 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		return nil, err
 	}
 
-	if err = os.MkdirAll(path.Join(rootfs, "var", "run"), 0o755); err != nil {
-		return nil, err
-	}
-
 	// Workaround for 104-char limit of UNIX socket path
 	shortenedRootfsPath, err := filepath.Rel(wd, path.Join(rootfs))
 	if err != nil || len(shortenedRootfsPath) > len(rootfs) {
@@ -284,6 +280,10 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 
 	c, err := s.getContainer(request.ID)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = os.MkdirAll(path.Dir(c.dnsSocketPath), 0o755); err != nil {
 		return nil, err
 	}
 
