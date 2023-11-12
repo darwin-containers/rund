@@ -18,6 +18,9 @@ What rund provides:
 * Host-network mode only
 * bind mounts
 
+You can https://www.youtube.com/watch?v=RS9C_4O_Ohg[view a video review of macOS containers] and also https://earthly.dev/blog/macos-native-containers/[read an article].
+Both were created by https://earthly.dev[Earthly].
+
 == Installation and usage
 
 See https://github.com/macOScontainers/homebrew-formula#readme[homebrew-formula] repository for end-user instructions.
