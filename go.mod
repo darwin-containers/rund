@@ -8,7 +8,7 @@ require (
 	github.com/containerd/log v0.1.0
 	github.com/containerd/plugin v0.0.0-20231101173250-7ec69893e1e7
 	github.com/containerd/ttrpc v1.2.2
-	github.com/creack/pty v1.1.20
+	github.com/creack/pty v1.1.21
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sys v0.14.0
