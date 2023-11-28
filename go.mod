@@ -11,7 +11,7 @@ require (
 	github.com/creack/pty v1.1.21
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/sys v0.14.0
+	golang.org/x/sys v0.15.0
 )
 
 require (
