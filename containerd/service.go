@@ -235,15 +235,22 @@ func processMount(rootfs, mtype, source, target string, options []string) (*moun
 		Options: options,
 	}
 
-	if mtype == "bind" {
+	switch mtype {
+	case "bind":
 		stat, err := os.Stat(source)
-		if err == nil && stat.IsDir() {
+		if err != nil {
+			return nil, err
+		}
+
+		if stat.IsDir() {
 			fullPath := filepath.Join(rootfs, target)
 			if err = os.MkdirAll(fullPath, 0o755); err != nil {
 				return nil, err
 			}
 
 			return m, nil
+		} else {
+			// skip, only dirs are supported by bindfs
 		}
 	}
 
