@@ -252,6 +252,8 @@ func processMount(rootfs, mtype, source, target string, options []string) (*moun
 		} else {
 			// skip, only dirs are supported by bindfs
 		}
+	case "devfs":
+		return m, nil
 	}
 
 	log.L.Warn("skipping mount: ", m)
