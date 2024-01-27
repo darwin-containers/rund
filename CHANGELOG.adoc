@@ -1,9 +1,17 @@
 = Changelog
 :icons: font
 
-== Unreleased
+== 0.0.7
 
 - Add initial `docker exec` support (#37)
+
+== 0.0.6
+
+- Fix hang during `docker build` with BuildKit
+
+== 0.0.5
+
+- Upgrade to containerd 2.x
 
 == 0.0.4
 
