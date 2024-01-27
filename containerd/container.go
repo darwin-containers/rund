@@ -1,15 +1,13 @@
 package containerd
 
 import (
-	"github.com/containerd/containerd/v2/api/types/task"
+	"github.com/containerd/containerd/v2/errdefs"
 	"github.com/containerd/containerd/v2/mount"
 	"github.com/containerd/containerd/v2/oci"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sys/unix"
 	"os"
-	"os/exec"
 	"sync"
-	"time"
 )
 
 const unmountFlags = unix.MNT_FORCE
@@ -20,26 +18,29 @@ type container struct {
 	bundlePath    string
 	rootfs        string
 	dnsSocketPath string
-	io            stdio
-	console       *os.File
 
-	mu         sync.Mutex
-	cmd        *exec.Cmd
-	waitblock  chan struct{}
-	status     task.Status
-	exitStatus uint32
-	exitedAt   time.Time
+	mu sync.Mutex
+
+	// primary is the primary process for the container.
+	// The lifetime of the container is tied to this process.
+	primary managedProcess
+
+	// auxiliary is a map of additional processes that run in the jail.
+	auxiliary map[string]*managedProcess
 }
 
 func (c *container) destroy() (retErr error) {
-	if err := c.io.Close(); err != nil {
-		retErr = multierror.Append(retErr, err)
-	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	if c.console != nil {
-		if err := c.console.Close(); err != nil {
+	for _, p := range c.auxiliary {
+		if err := p.destroy(); err != nil {
 			retErr = multierror.Append(retErr, err)
 		}
+	}
+
+	if err := c.primary.destroy(); err != nil {
+		retErr = multierror.Append(retErr, err)
 	}
 
 	// Remove socket file to avoid continuity "failed to create irregular file" error during multiple Dockerfile  `RUN` steps
@@ -52,23 +53,23 @@ func (c *container) destroy() (retErr error) {
 	return
 }
 
-func (c *container) setStatusL(status task.Status) {
+func (c *container) getProcessL(execID string) (*managedProcess, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.status = status
+	return c.getProcess(execID)
 }
 
-func (c *container) getStatusL() task.Status {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (c *container) getProcess(execID string) (*managedProcess, error) {
+	if execID == "" {
+		return &c.primary, nil
+	}
 
-	return c.status
-}
+	p := c.auxiliary[execID]
 
-func (c *container) getConsoleL() *os.File {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	if p == nil {
+		return nil, errdefs.ToGRPCf(errdefs.ErrNotFound, "exec not found: %s", execID)
+	}
 
-	return c.console
+	return p, nil
 }

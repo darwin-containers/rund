@@ -17,12 +17,11 @@ import (
 	"github.com/containerd/containerd/v2/runtime/v2/shim"
 	"github.com/containerd/log"
 	"github.com/containerd/ttrpc"
+	"github.com/containerd/typeurl/v2"
 	"github.com/creack/pty"
-	"golang.org/x/sys/unix"
-	"io"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"net"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"sync"
@@ -84,31 +83,32 @@ func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*ta
 	log.G(ctx).WithField("request", request).Info("STATE")
 	defer log.G(ctx).Info("STATE_DONE")
 
-	if request.ExecID != "" {
-		return nil, errdefs.ErrNotImplemented
-	}
-
 	c, err := s.getContainerL(request.ID)
 	if err != nil {
 		return nil, err
 	}
 
+	p, err := c.getProcessL(request.ExecID)
+	if err != nil {
+		return nil, err
+	}
+
 	var pid int
-	if p := c.cmd.Process; p != nil {
-		pid = p.Pid
+	if process := p.cmd.Process; process != nil {
+		pid = process.Pid
 	}
 
 	return &taskAPI.StateResponse{
 		ID:         request.ID,
 		Bundle:     c.bundlePath,
 		Pid:        uint32(pid),
-		Status:     c.status,
-		Stdin:      c.io.stdinPath,
-		Stdout:     c.io.stdoutPath,
-		Stderr:     c.io.stderrPath,
+		Status:     p.status,
+		Stdin:      p.io.stdinPath,
+		Stdout:     p.io.stdoutPath,
+		Stderr:     p.io.stderrPath,
 		Terminal:   c.spec.Process.Terminal,
-		ExitedAt:   protobuf.ToTimestamp(c.exitedAt),
-		ExitStatus: c.exitStatus,
+		ExitedAt:   protobuf.ToTimestamp(p.exitedAt),
+		ExitStatus: p.exitStatus,
 		ExecID:     request.ExecID,
 	}, nil
 }
@@ -147,8 +147,12 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		bundlePath:    request.Bundle,
 		rootfs:        rootfs,
 		dnsSocketPath: dnsSocketPath,
-		waitblock:     make(chan struct{}),
-		status:        task.Status_CREATED,
+		primary: managedProcess{
+			spec:      spec.Process,
+			waitblock: make(chan struct{}),
+			status:    task.Status_CREATED,
+		},
+		auxiliary: make(map[string]*managedProcess),
 	}
 
 	defer func() {
@@ -159,27 +163,8 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		}
 	}()
 
-	c.io, err = setupIO(ctx, request.Stdin, request.Stdout, request.Stderr)
-	if err != nil {
+	if err = c.primary.setup(ctx, c.rootfs, request.Stdin, request.Stdout, request.Stderr); err != nil {
 		return nil, err
-	}
-
-	if len(spec.Process.Args) <= 0 {
-		// TODO: How to handle this properly?
-		spec.Process.Args = []string{"/bin/sh"}
-		// return nil, fmt.Errorf("args must not be empty")
-	}
-
-	c.cmd = exec.Command(c.spec.Process.Args[0])
-	c.cmd.Args = c.spec.Process.Args
-	c.cmd.Dir = c.spec.Process.Cwd
-	c.cmd.Env = c.spec.Process.Env
-	c.cmd.SysProcAttr = &syscall.SysProcAttr{
-		Chroot: c.rootfs,
-		Credential: &syscall.Credential{
-			Uid: c.spec.Process.User.UID,
-			Gid: c.spec.Process.User.GID,
-		},
 	}
 
 	var mounts []mount.Mount
@@ -209,6 +194,7 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		return nil, fmt.Errorf("failed to mount rootfs component: %w", err)
 	}
 
+	// TODO: Check if container already exists?
 	s.containers[request.ID] = c
 
 	s.events <- &events.TaskCreate{
@@ -280,10 +266,6 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 	log.G(ctx).WithField("request", request).Info("START")
 	defer log.G(ctx).Info("START_DONE")
 
-	if request.ExecID != "" {
-		return nil, errdefs.ErrNotImplemented
-	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -292,89 +274,93 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 		return nil, err
 	}
 
-	if err = os.MkdirAll(path.Dir(c.dnsSocketPath), 0o755); err != nil {
-		return nil, err
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if request.ExecID == "" {
+		if err = os.MkdirAll(path.Dir(c.dnsSocketPath), 0o755); err != nil {
+			return nil, err
+		}
+
+		dnsSocket, err := net.ListenUnix("unix", &net.UnixAddr{Name: c.dnsSocketPath, Net: "unix"})
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO: We should stop this somehow?
+		go func() {
+			for {
+				con, err := dnsSocket.AcceptUnix()
+				if err != nil {
+					return
+				}
+
+				pipe, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "/var/run/mDNSResponder", Net: "unix"})
+				if err != nil {
+					return
+				}
+				go unixSocketCopy(con, pipe)
+				go unixSocketCopy(pipe, con)
+			}
+		}()
 	}
 
-	dnsSocket, err := net.ListenUnix("unix", &net.UnixAddr{Name: c.dnsSocketPath, Net: "unix"})
+	p, err := c.getProcess(request.ExecID)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: We should stop this somehow?
-	go func() {
-		for {
-			con, err := dnsSocket.AcceptUnix()
-			if err != nil {
-				return
-			}
-
-			pipe, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "/var/run/mDNSResponder", Net: "unix"})
-			if err != nil {
-				return
-			}
-			go unixSocketCopy(con, pipe)
-			go unixSocketCopy(pipe, con)
-		}
-	}()
-
-	if c.spec.Process.Terminal {
-		// TODO: I'd like to use containerd/console package instead
-		// But see https://github.com/containerd/console/issues/79
-		var consoleSize *pty.Winsize
-		if c.spec.Process.ConsoleSize != nil {
-			consoleSize = &pty.Winsize{
-				Cols: uint16(c.spec.Process.ConsoleSize.Width),
-				Rows: uint16(c.spec.Process.ConsoleSize.Height),
-			}
-		}
-
-		c.console, err = pty.StartWithSize(c.cmd, consoleSize)
-		if err != nil {
-			return nil, err
-		}
-
-		go io.Copy(c.console, c.io.stdin)
-		go io.Copy(c.io.stdout, c.console)
-	} else {
-		c.cmd.SysProcAttr.Setpgid = true
-		c.cmd.Stdin = c.io.stdin
-		c.cmd.Stdout = c.io.stdout
-		c.cmd.Stderr = c.io.stderr
-
-		err = c.cmd.Start()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	c.setStatusL(task.Status_RUNNING)
-
-	s.events <- &events.TaskStart{
-		ContainerID: request.ID,
-		Pid:         uint32(c.cmd.Process.Pid),
+	if err = p.start(); err != nil {
+		return nil, err
 	}
 
 	go func() {
-		w, _ := wait(c.cmd.Process)
+		var w *os.ProcessState
 
-		c.exitedAt = time.Now()
-		c.exitStatus = uint32(w.ExitCode())
-		c.setStatusL(task.Status_STOPPED)
-		_ = c.io.Close()
+		if request.ExecID == "" {
+			w, _ = wait(p.cmd.Process)
+		} else {
+			w, _ = p.cmd.Process.Wait()
+		}
+
+		p.exitedAt = time.Now()
+		p.exitStatus = uint32(w.ExitCode())
+		p.status = task.Status_STOPPED
+
+		_ = p.io.Close()
+
+		// Madness...
+		id := request.ID
+		if request.ExecID != "" {
+			id = request.ExecID
+		}
+
 		s.events <- &events.TaskExit{
 			ContainerID: request.ID,
-			ID:          request.ID,
+			ID:          id,
 			Pid:         uint32(w.Pid()),
-			ExitedAt:    protobuf.ToTimestamp(c.exitedAt),
-			ExitStatus:  c.exitStatus,
+			ExitedAt:    protobuf.ToTimestamp(p.exitedAt),
+			ExitStatus:  p.exitStatus,
 		}
 
-		close(c.waitblock)
+		close(p.waitblock)
 	}()
 
+	if request.ExecID == "" {
+		s.events <- &events.TaskStart{
+			ContainerID: request.ID,
+			Pid:         uint32(p.cmd.Process.Pid),
+		}
+	} else {
+		s.events <- &events.TaskExecStarted{
+			ContainerID: request.ID,
+			ExecID:      request.ExecID,
+			Pid:         uint32(p.cmd.Process.Pid),
+		}
+	}
+
 	return &taskAPI.StartResponse{
-		Pid: uint32(c.cmd.Process.Pid),
+		Pid: uint32(p.cmd.Process.Pid),
 	}, nil
 }
 
@@ -382,16 +368,32 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 	log.G(ctx).WithField("request", request).Info("DELETE")
 	defer log.G(ctx).Info("DELETE_DONE")
 
-	if request.ExecID != "" {
-		return nil, errdefs.ErrNotImplemented
-	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	c, err := s.getContainer(request.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	if request.ExecID != "" {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+
+		p, err := c.getProcess(request.ExecID)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := p.destroy(); err != nil {
+			log.G(ctx).WithError(err).Warn("failed to destroy exec")
+		}
+		delete(c.auxiliary, request.ExecID)
+
+		return &taskAPI.DeleteResponse{
+			ExitedAt:   protobuf.ToTimestamp(p.exitedAt),
+			ExitStatus: p.exitStatus,
+		}, nil
 	}
 
 	if err := c.destroy(); err != nil {
@@ -401,21 +403,21 @@ func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*
 	delete(s.containers, request.ID)
 
 	var pid uint32
-	if p := c.cmd.Process; p != nil {
+	if p := c.primary.cmd.Process; p != nil {
 		pid = uint32(p.Pid)
 	}
 
 	s.events <- &events.TaskDelete{
 		ContainerID: request.ID,
-		ExitedAt:    protobuf.ToTimestamp(c.exitedAt),
-		ExitStatus:  c.exitStatus,
+		ExitedAt:    protobuf.ToTimestamp(c.primary.exitedAt),
+		ExitStatus:  c.primary.exitStatus,
 		ID:          request.ID,
 		Pid:         pid,
 	}
 
 	return &taskAPI.DeleteResponse{
-		ExitedAt:   protobuf.ToTimestamp(c.exitedAt),
-		ExitStatus: c.exitStatus,
+		ExitedAt:   protobuf.ToTimestamp(c.primary.exitedAt),
+		ExitStatus: c.primary.exitStatus,
 		Pid:        pid,
 	}, nil
 }
@@ -444,8 +446,35 @@ func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptyp
 	log.G(ctx).WithField("request", request).Info("KILL")
 	defer log.G(ctx).Info("KILL_DONE")
 
-	if request.ExecID != "" {
-		return nil, errdefs.ErrNotImplemented
+	c, err := s.getContainerL(request.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := c.getProcessL(request.ExecID)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Do we care about error here?
+	_ = p.kill(syscall.Signal(request.Signal))
+
+	return &ptypes.Empty{}, nil
+}
+
+func (s *service) Exec(ctx context.Context, request *taskAPI.ExecProcessRequest) (_ *ptypes.Empty, retErr error) {
+	log.G(ctx).WithField("request", request).Info("EXEC")
+
+	specAny, err := typeurl.UnmarshalAny(request.Spec)
+	if err != nil {
+		log.G(ctx).WithError(err).Error("failed to unmarshal spec")
+		return nil, errdefs.ErrInvalidArgument
+	}
+
+	spec, ok := specAny.(*specs.Process)
+	if !ok {
+		log.G(ctx).Error("mismatched type for spec")
+		return nil, errdefs.ErrInvalidArgument
 	}
 
 	c, err := s.getContainerL(request.ID)
@@ -453,38 +482,56 @@ func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptyp
 		return nil, err
 	}
 
-	if p := c.cmd.Process; p != nil {
-		_ = unix.Kill(-p.Pid, syscall.Signal(request.Signal))
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	aux := &managedProcess{
+		spec:      spec,
+		waitblock: make(chan struct{}),
+		status:    task.Status_CREATED,
+	}
+
+	defer func() {
+		if retErr != nil {
+			if err := aux.destroy(); err != nil {
+				log.G(ctx).WithError(err).Warn("failed to cleanup aux")
+			}
+		}
+	}()
+
+	if err = aux.setup(ctx, c.rootfs, request.Stdin, request.Stdout, request.Stderr); err != nil {
+		return nil, err
+	}
+
+	// TODO: Check if aux already exists?
+	c.auxiliary[request.ExecID] = aux
+
+	s.events <- &events.TaskExecAdded{
+		ContainerID: request.ID,
+		ExecID:      request.ExecID,
 	}
 
 	return &ptypes.Empty{}, nil
-}
-
-func (s *service) Exec(ctx context.Context, request *taskAPI.ExecProcessRequest) (*ptypes.Empty, error) {
-	log.G(ctx).WithField("request", request).Info("EXEC")
-	return nil, errdefs.ErrNotImplemented
 }
 
 func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyRequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Info("RESIZEPTY")
 	defer log.G(ctx).Info("RESIZEPTY_DONE")
 
-	if request.ExecID != "" {
-		return nil, errdefs.ErrNotImplemented
-	}
-
 	c, err := s.getContainerL(request.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	con := c.getConsoleL()
-	if con == nil {
-		return &ptypes.Empty{}, nil
+	p, err := c.getProcessL(request.ExecID)
+	if err != nil {
+		return nil, err
 	}
 
-	if err = pty.Setsize(con, &pty.Winsize{Cols: uint16(request.Width), Rows: uint16(request.Height)}); err != nil {
-		return nil, err
+	if con := p.getConsoleL(); con != nil {
+		if err = pty.Setsize(con, &pty.Winsize{Cols: uint16(request.Width), Rows: uint16(request.Height)}); err != nil {
+			return nil, err
+		}
 	}
 
 	return &ptypes.Empty{}, nil
@@ -493,17 +540,18 @@ func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyReque
 func (s *service) CloseIO(ctx context.Context, request *taskAPI.CloseIORequest) (*ptypes.Empty, error) {
 	log.G(ctx).WithField("request", request).Info("CLOSEIO")
 
-	if request.ExecID != "" {
-		return nil, errdefs.ErrNotImplemented
-	}
-
 	c, err := s.getContainerL(request.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	if stdin := c.io.stdin; stdin != nil {
-		stdin.Close()
+	p, err := c.getProcessL(request.ExecID)
+	if err != nil {
+		return nil, err
+	}
+
+	if stdin := p.io.stdin; stdin != nil {
+		_ = stdin.Close()
 	}
 
 	return &ptypes.Empty{}, nil
@@ -518,20 +566,21 @@ func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*task
 	log.G(ctx).WithField("request", request).Info("WAIT")
 	defer log.G(ctx).Info("WAIT_DONE")
 
-	if request.ExecID != "" {
-		return nil, errdefs.ErrNotImplemented
-	}
-
 	c, err := s.getContainerL(request.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	<-c.waitblock
+	p, err := c.getProcessL(request.ExecID)
+	if err != nil {
+		return nil, err
+	}
+
+	<-p.waitblock
 
 	return &taskAPI.WaitResponse{
-		ExitedAt:   protobuf.ToTimestamp(c.exitedAt),
-		ExitStatus: c.exitStatus,
+		ExitedAt:   protobuf.ToTimestamp(p.exitedAt),
+		ExitStatus: p.exitStatus,
 	}, nil
 }
 
@@ -546,7 +595,7 @@ func (s *service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) 
 
 	var pid int
 	if c, err := s.getContainerL(request.ID); err == nil {
-		if p := c.cmd.Process; p != nil {
+		if p := c.primary.cmd.Process; p != nil {
 			pid = p.Pid
 		}
 	}

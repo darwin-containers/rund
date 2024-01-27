@@ -1,6 +1,10 @@
 = Changelog
 :icons: font
 
+== Unreleased
+
+- Add initial `docker exec` support (#37)
+
 == 0.0.4
 
 - Add support for container exit times (#21)
