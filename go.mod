@@ -6,10 +6,12 @@ require (
 	github.com/containerd/containerd/v2 v2.0.0-beta.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/log v0.1.0
-	github.com/containerd/plugin v0.0.0-20231101173250-7ec69893e1e7
+	github.com/containerd/plugin v0.1.0
 	github.com/containerd/ttrpc v1.2.2
+	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/creack/pty v1.1.21
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/opencontainers/runtime-spec v1.1.1-0.20230823135140-4fec88fd00a4
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sys v0.16.0
 )
@@ -23,7 +25,6 @@ require (
 	github.com/containerd/containerd v1.7.8 // indirect
 	github.com/containerd/continuity v0.4.2 // indirect
 	github.com/containerd/go-runc v1.1.0 // indirect
-	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -37,7 +38,6 @@ require (
 	github.com/moby/sys/user v0.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
-	github.com/opencontainers/runtime-spec v1.1.1-0.20230823135140-4fec88fd00a4 // indirect
 	github.com/opencontainers/runtime-tools v0.9.1-0.20221107090550-2e043c6bd626 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
