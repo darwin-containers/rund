@@ -11,7 +11,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/creack/pty v1.1.21
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/opencontainers/runtime-spec v1.1.1-0.20230823135140-4fec88fd00a4
+	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sys v0.17.0
 )
