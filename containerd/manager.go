@@ -3,11 +3,14 @@ package containerd
 import (
 	"context"
 	"fmt"
-	"github.com/containerd/containerd/v2/mount"
-	"github.com/containerd/containerd/v2/namespaces"
-	"github.com/containerd/containerd/v2/oci"
-	"github.com/containerd/containerd/v2/runtime/v2/shim"
+	"github.com/containerd/containerd/v2/api/types"
+	apitypes "github.com/containerd/containerd/v2/api/types"
+	"github.com/containerd/containerd/v2/core/mount"
+	"github.com/containerd/containerd/v2/core/runtime/v2/shim"
+	"github.com/containerd/containerd/v2/pkg/namespaces"
+	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/containerd/log"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -16,18 +19,28 @@ import (
 )
 
 func NewManager(name string) shim.Manager {
-	return manager{name: name}
+	return &manager{name: name}
 }
 
 type manager struct {
 	name string
 }
 
-func (m manager) Name() string {
+func (m *manager) Info(_ context.Context, _ io.Reader) (*types.RuntimeInfo, error) {
+	info := &apitypes.RuntimeInfo{
+		Name: m.Name(),
+		Version: &apitypes.RuntimeVersion{
+			Version: Version,
+		},
+	}
+	return info, nil
+}
+
+func (m *manager) Name() string {
 	return m.name
 }
 
-func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (params shim.BootstrapParams, retErr error) {
+func (*manager) Start(ctx context.Context, id string, opts shim.StartOpts) (params shim.BootstrapParams, retErr error) {
 	params.Version = 3
 	params.Protocol = "ttrpc"
 
@@ -89,7 +102,7 @@ func (manager) Start(ctx context.Context, id string, opts shim.StartOpts) (param
 	return params, nil
 }
 
-func (manager) Stop(ctx context.Context, id string) (shim.StopStatus, error) {
+func (*manager) Stop(ctx context.Context, id string) (shim.StopStatus, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return shim.StopStatus{}, err
