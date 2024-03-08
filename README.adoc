@@ -65,7 +65,12 @@ cd containerd
 sudo go run cmd/ctr/main.go image pull ghcr.io/macoscontainers/macos-jail/ventura:latest
 
 # Aaaand... Run your first macOS container!
-sudo go run cmd/ctr/main.go run --rm -t --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/macoscontainers/macos-jail/ventura:latest my_container /bin/sh -c 'echo "Hello from macOS container ^_^"'
+
+# On Apple Silicon
+sudo go run cmd/ctr/main.go run --rm -t --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/macoscontainers/macos-jail/ventura-arm64:latest my_container /bin/sh -c 'echo "Hello from macOS container ^_^"'
+
+# On Intel
+sudo go run cmd/ctr/main.go run --rm -t --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/macoscontainers/macos-jail/ventura-i386:latest my_container /bin/sh -c 'echo "Hello from macOS container ^_^"'
 ----
 
 If you want to build image from scratch, see https://github.com/macOScontainers/macos-jail[macos-jail] project.
