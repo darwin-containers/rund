@@ -1,4 +1,4 @@
-module github.com/macOScontainers/rund
+module github.com/darwin-containers/rund
 
 go 1.22
 
@@ -60,4 +60,4 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v0.6.0 // indirect
 )
 
-replace github.com/containerd/containerd/v2 => github.com/macOScontainers/containerd/v2 v2.0.0-20240218142517-4e59b5b68c3e
+replace github.com/containerd/containerd/v2 => github.com/darwin-containers/containerd/v2 v2.0.0-20240218142517-4e59b5b68c3e

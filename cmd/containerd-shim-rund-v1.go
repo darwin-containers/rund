@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/containerd/containerd/v2/core/runtime/v2/shim"
-	"github.com/macOScontainers/rund/containerd"
+	"github.com/darwin-containers/rund/containerd"
 )
 
 func withoutReaper(config *shim.Config) {

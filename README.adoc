@@ -1,29 +1,29 @@
 = rund
 :project-handle: rund
-:uri-project: https://github.com/macoscontainers/{project-handle}
+:uri-project: https://github.com/darwin-containers/{project-handle}
 :uri-ci: {uri-project}/actions?query=branch%3Amain
 :source-highlighter: rouge
 
 image:{uri-project}/workflows/CI/badge.svg?branch=main[GitHub Actions,link={uri-ci}]
 
-rund is an experimental https://containerd.io[containerd] shim for running *macOS* containers on macOS.
+rund is an experimental https://containerd.io[containerd] shim for running *Darwin* containers on Darwin.
 
-rund doesn't offer the usual level of container isolation that is achievable on other OSes due to limited macOS kernel API.
+rund doesn't offer the usual level of container isolation that is achievable on other OSes due to limited Darwin kernel API.
 
 What rund provides:
 
 * Filesystem isolation via https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/chroot.2.html[`chroot(2)`]
 * Cleanup of container processes using process group
-* OCI Runtime Specification compatibility (to the extent it is possible on macOS)
+* OCI Runtime Specification compatibility (to the extent it is possible on Darwin)
 * Host-network mode only
 * bind mounts
 
-You can https://www.youtube.com/watch?v=RS9C_4O_Ohg[view a video review of macOS containers] and also https://earthly.dev/blog/macos-native-containers/[read an article].
+You can https://www.youtube.com/watch?v=RS9C_4O_Ohg[view a video review of Darwin containers] and also https://earthly.dev/blog/macos-native-containers/[read an article].
 Both were created by https://earthly.dev[Earthly].
 
 == Installation and usage
 
-See https://github.com/macOScontainers/homebrew-formula#readme[homebrew-formula] repository for end-user instructions.
+See https://github.com/darwin-containers/homebrew-formula#readme[homebrew-formula] repository for end-user instructions.
 
 == Development
 
@@ -46,14 +46,14 @@ Then, run in Terminal:
 [source,shell]
 ----
 # Download rund
-git clone https://github.com/macOScontainers/rund
+git clone https://github.com/darwin-containers/rund
 cd rund
 # Build rund
 go build -o bin/ cmd/*.go
 cd ..
 
 # Download containerd
-git clone https://github.com/macOScontainers/containerd
+git clone https://github.com/darwin-containers/containerd
 cd containerd
 # Run containerd
 sudo go run cmd/containerd/main.go
@@ -62,18 +62,18 @@ sudo go run cmd/containerd/main.go
 
 # Download base image
 cd containerd
-sudo go run cmd/ctr/main.go image pull ghcr.io/macoscontainers/macos-jail/ventura:latest
+sudo go run cmd/ctr/main.go image pull ghcr.io/darwin-containers/darwin-jail/ventura:latest
 
-# Aaaand... Run your first macOS container!
+# Aaaand... Run your first Darwin container!
 
 # On Apple Silicon
-sudo go run cmd/ctr/main.go run --rm -t --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/macoscontainers/macos-jail/ventura-arm64:latest my_container /bin/sh -c 'echo "Hello from macOS container ^_^"'
+sudo go run cmd/ctr/main.go run --rm -t --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/darwin-containers/darwin-jail/ventura-arm64:latest my_container /bin/sh -c 'echo "Hello from Darwin container ^_^"'
 
 # On Intel
-sudo go run cmd/ctr/main.go run --rm -t --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/macoscontainers/macos-jail/ventura-i386:latest my_container /bin/sh -c 'echo "Hello from macOS container ^_^"'
+sudo go run cmd/ctr/main.go run --rm -t --runtime "$(pwd)/../rund/bin/containerd-shim-rund-v1" ghcr.io/darwin-containers/darwin-jail/ventura-i386:latest my_container /bin/sh -c 'echo "Hello from Darwin container ^_^"'
 ----
 
-If you want to build image from scratch, see https://github.com/macOScontainers/macos-jail[macos-jail] project.
+If you want to build image from scratch, see https://github.com/darwin-containers/darwin-jail[darwin-jail] project.
 
 === Usage with BuildKit
 
@@ -92,7 +92,7 @@ Then, from terminal:
 [source,shell]
 ----
 # Download BuildKit
-git clone https://github.com/macOScontainers/buildkit
+git clone https://github.com/darwin-containers/buildkit
 
 # Run BuildKit daemon
 cd buildkit
@@ -102,18 +102,18 @@ sudo go run ./cmd/buildkitd
 
 # Create Dockerfile
 cat << EOF > Dockerfile
-FROM ghcr.io/macoscontainers/macos-jail/ventura:latest
+FROM ghcr.io/darwin-containers/darwin-jail/ventura:latest
 RUN echo "Hello, World!"
 EOF
 
-# Aaaaad, build your first macOS image
+# Aaaaad, build your first Darwin image
 sudo go run ./cmd/buildctl build --frontend=dockerfile.v0 --local context=. -local dockerfile=.
 ----
 
 === Usage with Docker
 
 Perform all the steps from <<containerd>>.
-You don't need BuildKit daemon to use Docker on macOS.
+You don't need BuildKit daemon to use Docker on Darwin.
 
 Create `/etc/docker/daemon.json` with the following contents:
 
@@ -135,7 +135,7 @@ Then, from terminal:
 [source,shell]
 ----
 # Download Docker
-git clone https://github.com/macOScontainers/moby
+git clone https://github.com/darwin-containers/moby
 
 # Run Docker daemon
 cd moby
@@ -148,6 +148,6 @@ sudo go run ./cmd/dockerd
 # Install Docker cli
 brew install docker
 
-# Aaaand, run your first macOS native container
-sudo docker run --rm -it ghcr.io/macoscontainers/macos-jail/ventura:latest echo "Hello from macOS! ^_^"
+# Aaaand, run your first Darwin native container
+sudo docker run --rm -it ghcr.io/darwin-containers/darwin-jail/ventura:latest echo "Hello from Darwin! ^_^"
 ----
