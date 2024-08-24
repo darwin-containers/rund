@@ -1,7 +1,7 @@
 package containerd
 
 import (
-	"github.com/containerd/containerd/v2/core/runtime/v2/shim"
+	"github.com/containerd/containerd/v2/pkg/shim"
 	"github.com/containerd/containerd/v2/pkg/shutdown"
 	"github.com/containerd/containerd/v2/plugins"
 	"github.com/containerd/plugin"

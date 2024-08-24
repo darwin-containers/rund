@@ -2,7 +2,7 @@ package containerd
 
 import (
 	"context"
-	"github.com/containerd/containerd/v2/api/types/task"
+	"github.com/containerd/containerd/api/types/task"
 	"github.com/creack/pty"
 	"github.com/hashicorp/go-multierror"
 	"github.com/opencontainers/runtime-spec/specs-go"

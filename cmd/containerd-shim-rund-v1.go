@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/containerd/containerd/v2/core/runtime/v2/shim"
+	"github.com/containerd/containerd/v2/pkg/shim"
 	"github.com/darwin-containers/rund/containerd"
 )
 

@@ -3,12 +3,11 @@ package containerd
 import (
 	"context"
 	"fmt"
-	"github.com/containerd/containerd/v2/api/types"
-	apitypes "github.com/containerd/containerd/v2/api/types"
+	"github.com/containerd/containerd/api/types"
 	"github.com/containerd/containerd/v2/core/mount"
-	"github.com/containerd/containerd/v2/core/runtime/v2/shim"
 	"github.com/containerd/containerd/v2/pkg/namespaces"
 	"github.com/containerd/containerd/v2/pkg/oci"
+	"github.com/containerd/containerd/v2/pkg/shim"
 	"github.com/containerd/log"
 	"io"
 	"os"
@@ -27,9 +26,9 @@ type manager struct {
 }
 
 func (m *manager) Info(_ context.Context, _ io.Reader) (*types.RuntimeInfo, error) {
-	info := &apitypes.RuntimeInfo{
+	info := &types.RuntimeInfo{
 		Name: m.Name(),
-		Version: &apitypes.RuntimeVersion{
+		Version: &types.RuntimeVersion{
 			Version: Version,
 		},
 	}
