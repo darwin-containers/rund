@@ -15,6 +15,7 @@ import (
 	"github.com/containerd/containerd/v2/pkg/shim"
 	"github.com/containerd/containerd/v2/pkg/shutdown"
 	"github.com/containerd/errdefs"
+	"github.com/containerd/errdefs/errgrpc"
 	"github.com/containerd/log"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl/v2"
@@ -62,7 +63,7 @@ func (s *service) forward(ctx context.Context, publisher shim.Publisher) {
 func (s *service) getContainer(id string) (*container, error) {
 	c := s.containers[id]
 	if c == nil {
-		return nil, errdefs.ToGRPCf(errdefs.ErrNotFound, "container not created")
+		return nil, errgrpc.ToGRPCf(errdefs.ErrNotFound, "container not created")
 	}
 	return c, nil
 }

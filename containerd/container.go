@@ -4,6 +4,7 @@ import (
 	"github.com/containerd/containerd/v2/core/mount"
 	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/containerd/errdefs"
+	"github.com/containerd/errdefs/errgrpc"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sys/unix"
 	"os"
@@ -68,7 +69,7 @@ func (c *container) getProcess(execID string) (*managedProcess, error) {
 	p := c.auxiliary[execID]
 
 	if p == nil {
-		return nil, errdefs.ToGRPCf(errdefs.ErrNotFound, "exec not found: %s", execID)
+		return nil, errgrpc.ToGRPCf(errdefs.ErrNotFound, "exec not found: %s", execID)
 	}
 
 	return p, nil

@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/containerd/containerd/api v1.8.0-rc.3
 	github.com/containerd/containerd/v2 v2.0.0-rc.3
-	github.com/containerd/errdefs v0.1.0
+	github.com/containerd/errdefs v0.2.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/log v0.1.0
 	github.com/containerd/plugin v0.1.0
