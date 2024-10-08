@@ -4,7 +4,7 @@ import (
 	"github.com/containerd/containerd/v2/core/mount"
 	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/containerd/errdefs"
-	"github.com/containerd/errdefs/errgrpc"
+	"github.com/containerd/errdefs/pkg/errgrpc"
 	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sys/unix"
 	"os"
