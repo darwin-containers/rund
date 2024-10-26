@@ -15,7 +15,7 @@ import (
 	"github.com/containerd/containerd/v2/pkg/shim"
 	"github.com/containerd/containerd/v2/pkg/shutdown"
 	"github.com/containerd/errdefs"
-	"github.com/containerd/errdefs/errgrpc"
+	"github.com/containerd/errdefs/pkg/errgrpc"
 	"github.com/containerd/log"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl/v2"
