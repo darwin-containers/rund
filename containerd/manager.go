@@ -48,7 +48,7 @@ func (*manager) Start(ctx context.Context, id string, opts shim.StartOpts) (para
 		return params, err
 	}
 
-	address, err := shim.SocketAddress(ctx, opts.Address, id)
+	address, err := shim.SocketAddress(ctx, opts.Address, id, false)
 	if err != nil {
 		return params, err
 	}
