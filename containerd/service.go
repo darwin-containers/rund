@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/containerd/containerd/api/events"
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v3"
+	"github.com/containerd/containerd/api/types"
 	"github.com/containerd/containerd/api/types/task"
 	"github.com/containerd/containerd/v2/core/mount"
 	"github.com/containerd/containerd/v2/core/runtime"
@@ -168,27 +169,9 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 		return nil, err
 	}
 
-	var mounts []mount.Mount
-	for _, m := range request.Rootfs {
-		mm, err := processMount(c.rootfs, m.Type, m.Source, m.Target, m.Options)
-		if err != nil {
-			return nil, err
-		}
-
-		if mm != nil {
-			mounts = append(mounts, *mm)
-		}
-	}
-
-	for _, m := range spec.Mounts {
-		mm, err := processMount(c.rootfs, m.Type, m.Source, m.Destination, m.Options)
-		if err != nil {
-			return nil, err
-		}
-
-		if mm != nil {
-			mounts = append(mounts, *mm)
-		}
+	mounts, err := processMounts(c.rootfs, request.Rootfs, spec.Mounts)
+	if err != nil {
+		return nil, err
 	}
 
 	if err = mount.All(mounts, c.rootfs); err != nil {
@@ -212,6 +195,33 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	}
 
 	return &taskAPI.CreateTaskResponse{}, nil
+}
+
+func processMounts(targetRoot string, rootfs []*types.Mount, specMounts []specs.Mount) ([]mount.Mount, error) {
+	var mounts []mount.Mount
+	for _, m := range rootfs {
+		mm, err := processMount(targetRoot, m.Type, m.Source, m.Target, m.Options)
+		if err != nil {
+			return nil, err
+		}
+
+		if mm != nil {
+			mounts = append(mounts, *mm)
+		}
+	}
+
+	for _, m := range specMounts {
+		mm, err := processMount(targetRoot, m.Type, m.Source, m.Destination, m.Options)
+		if err != nil {
+			return nil, err
+		}
+
+		if mm != nil {
+			mounts = append(mounts, *mm)
+		}
+	}
+
+	return mounts, nil
 }
 
 func processMount(rootfs, mtype, source, target string, options []string) (*mount.Mount, error) {
