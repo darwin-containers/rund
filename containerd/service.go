@@ -119,11 +119,6 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	log.G(ctx).WithField("request", request).Info("CREATE")
 	defer log.G(ctx).Info("CREATE_DONE")
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
 	spec, err := oci.ReadSpec(path.Join(request.Bundle, oci.ConfigFilename))
 	if err != nil {
 		return nil, err
@@ -135,10 +130,11 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	}
 
 	// Workaround for 104-char limit of UNIX socket path
-	shortenedRootfsPath, err := filepath.Rel(wd, path.Join(rootfs))
-	if err != nil || len(shortenedRootfsPath) > len(rootfs) {
-		shortenedRootfsPath = rootfs
+	shortenedRootfsPath, err := shortenPath(rootfs)
+	if err != nil {
+		return nil, err
 	}
+
 	dnsSocketPath := path.Join(shortenedRootfsPath, "var", "run", "mDNSResponder")
 
 	s.mu.Lock()
@@ -195,6 +191,20 @@ func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest
 	}
 
 	return &taskAPI.CreateTaskResponse{}, nil
+}
+
+func shortenPath(p string) (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	shortened, err := filepath.Rel(wd, path.Join(p))
+	if err != nil || len(shortened) > len(p) {
+		return p, nil
+	}
+
+	return shortened, nil
 }
 
 func processMounts(targetRoot string, rootfs []*types.Mount, specMounts []specs.Mount) ([]mount.Mount, error) {
