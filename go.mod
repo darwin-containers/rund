@@ -10,7 +10,7 @@ require (
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/log v0.1.0
 	github.com/containerd/plugin v1.0.0
-	github.com/containerd/ttrpc v1.2.6
+	github.com/containerd/ttrpc v1.2.7
 	github.com/containerd/typeurl/v2 v2.2.3
 	github.com/creack/pty v1.1.24
 	github.com/hashicorp/go-multierror v1.1.1
