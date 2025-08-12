@@ -1,6 +1,7 @@
 package containerd
 
 import (
+	"errors"
 	"os"
 	"sync"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/containerd/errdefs"
 	"github.com/containerd/errdefs/pkg/errgrpc"
-	"github.com/hashicorp/go-multierror"
 	"golang.org/x/sys/unix"
 )
 
@@ -31,28 +31,30 @@ type container struct {
 	auxiliary map[string]*managedProcess
 }
 
-func (c *container) destroy() (retErr error) {
+func (c *container) destroy() error {
+	var errs []error
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for _, p := range c.auxiliary {
 		if err := p.destroy(); err != nil {
-			retErr = multierror.Append(retErr, err)
+			errs = append(errs, err)
 		}
 	}
 
 	if err := c.primary.destroy(); err != nil {
-		retErr = multierror.Append(retErr, err)
+		errs = append(errs, err)
 	}
 
 	// Remove socket file to avoid continuity "failed to create irregular file" error during multiple Dockerfile  `RUN` steps
 	_ = os.Remove(c.dnsSocketPath)
 
 	if err := mount.UnmountRecursive(c.rootfs, unmountFlags); err != nil {
-		retErr = multierror.Append(retErr, err)
+		errs = append(errs, err)
 	}
 
-	return
+	return errors.Join(errs...)
 }
 
 func (c *container) getProcessL(execID string) (*managedProcess, error) {

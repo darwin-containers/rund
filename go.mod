@@ -13,7 +13,6 @@ require (
 	github.com/containerd/ttrpc v1.2.7
 	github.com/containerd/typeurl/v2 v2.2.3
 	github.com/creack/pty v1.1.24
-	github.com/hashicorp/go-multierror v1.1.1
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sys v0.35.0
@@ -31,7 +30,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mdlayher/socket v0.5.1 // indirect
 	github.com/mdlayher/vsock v1.2.1 // indirect

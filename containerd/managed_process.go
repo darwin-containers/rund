@@ -2,6 +2,7 @@ package containerd
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/containerd/containerd/api/types/task"
 	"github.com/creack/pty"
-	"github.com/hashicorp/go-multierror"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 )
@@ -35,17 +35,19 @@ func (p *managedProcess) getConsoleL() *os.File {
 	return p.console
 }
 
-func (p *managedProcess) destroy() (retErr error) {
+func (p *managedProcess) destroy() error {
+	var errs []error
+
 	// TODO: Do we care about error?
 	_ = p.kill(syscall.SIGKILL)
 
 	if err := p.io.Close(); err != nil {
-		retErr = multierror.Append(retErr, err)
+		errs = append(errs, err)
 	}
 
 	if p.console != nil {
 		if err := p.console.Close(); err != nil {
-			retErr = multierror.Append(retErr, err)
+			errs = append(errs, err)
 		}
 	}
 
@@ -55,7 +57,7 @@ func (p *managedProcess) destroy() (retErr error) {
 		p.exitStatus = uint32(syscall.SIGKILL)
 	}
 
-	return
+	return errors.Join(errs...)
 }
 
 func (p *managedProcess) kill(signal syscall.Signal) error {
