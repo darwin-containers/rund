@@ -3,18 +3,19 @@ package containerd
 import (
 	"context"
 	"fmt"
-	"github.com/containerd/containerd/api/types"
-	"github.com/containerd/containerd/v2/core/mount"
-	"github.com/containerd/containerd/v2/pkg/namespaces"
-	"github.com/containerd/containerd/v2/pkg/oci"
-	"github.com/containerd/containerd/v2/pkg/shim"
-	"github.com/containerd/log"
 	"io"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"time"
+
+	"github.com/containerd/containerd/api/types"
+	"github.com/containerd/containerd/v2/core/mount"
+	"github.com/containerd/containerd/v2/pkg/namespaces"
+	"github.com/containerd/containerd/v2/pkg/oci"
+	"github.com/containerd/containerd/v2/pkg/shim"
+	"github.com/containerd/log"
 )
 
 func NewManager(name string) shim.Manager {

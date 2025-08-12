@@ -3,6 +3,14 @@ package containerd
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"path"
+	"path/filepath"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/containerd/containerd/api/events"
 	taskAPI "github.com/containerd/containerd/api/runtime/task/v3"
 	"github.com/containerd/containerd/api/types"
@@ -22,13 +30,6 @@ import (
 	"github.com/containerd/typeurl/v2"
 	"github.com/creack/pty"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"net"
-	"os"
-	"path"
-	"path/filepath"
-	"sync"
-	"syscall"
-	"time"
 )
 
 func NewTaskService(ctx context.Context, publisher shim.Publisher, sd shutdown.Service) (taskAPI.TTRPCTaskService, error) {

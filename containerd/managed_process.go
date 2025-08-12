@@ -2,17 +2,18 @@ package containerd
 
 import (
 	"context"
-	"github.com/containerd/containerd/api/types/task"
-	"github.com/creack/pty"
-	"github.com/hashicorp/go-multierror"
-	"github.com/opencontainers/runtime-spec/specs-go"
-	"golang.org/x/sys/unix"
 	"io"
 	"os"
 	"os/exec"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/containerd/containerd/api/types/task"
+	"github.com/creack/pty"
+	"github.com/hashicorp/go-multierror"
+	"github.com/opencontainers/runtime-spec/specs-go"
+	"golang.org/x/sys/unix"
 )
 
 type managedProcess struct {

@@ -1,10 +1,11 @@
 package containerd
 
 import (
-	"golang.org/x/sys/unix"
 	"os"
 	"syscall"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 // See https://jmmv.dev/2019/11/wait-for-process-group-darwin.html

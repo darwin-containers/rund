@@ -2,10 +2,11 @@ package containerd
 
 import (
 	"context"
-	"github.com/containerd/fifo"
 	"io"
 	"os"
 	"syscall"
+
+	"github.com/containerd/fifo"
 )
 
 type stdio struct {

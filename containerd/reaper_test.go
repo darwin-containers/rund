@@ -1,10 +1,11 @@
 package containerd
 
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"syscall"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestWaitExit(t *testing.T) {
