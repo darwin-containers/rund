@@ -1,6 +1,6 @@
 module github.com/darwin-containers/rund
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/containerd/containerd/api v1.9.0
@@ -15,7 +15,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/sys v0.35.0
+	golang.org/x/sys v0.36.0
 )
 
 require (
