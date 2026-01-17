@@ -82,9 +82,11 @@ func (s *service) RegisterTTRPC(server *ttrpc.Server) error {
 	return nil
 }
 
-func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*taskAPI.StateResponse, error) {
+func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (resp *taskAPI.StateResponse, err error) {
 	log.G(ctx).WithField("request", request).Info("STATE")
-	defer log.G(ctx).Info("STATE_DONE")
+	defer func() {
+		log.G(ctx).WithError(err).Info("STATE_DONE")
+	}()
 
 	c, err := s.getContainerL(request.ID)
 	if err != nil {
@@ -118,7 +120,9 @@ func (s *service) State(ctx context.Context, request *taskAPI.StateRequest) (*ta
 
 func (s *service) Create(ctx context.Context, request *taskAPI.CreateTaskRequest) (_ *taskAPI.CreateTaskResponse, retErr error) {
 	log.G(ctx).WithField("request", request).Info("CREATE")
-	defer log.G(ctx).Info("CREATE_DONE")
+	defer func() {
+		log.G(ctx).WithError(retErr).Info("CREATE_DONE")
+	}()
 
 	spec, err := oci.ReadSpec(path.Join(request.Bundle, oci.ConfigFilename))
 	if err != nil {
@@ -284,9 +288,11 @@ func unixSocketCopy(from, to *net.UnixConn) error {
 	}
 }
 
-func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*taskAPI.StartResponse, error) {
+func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (resp *taskAPI.StartResponse, err error) {
 	log.G(ctx).WithField("request", request).Info("START")
-	defer log.G(ctx).Info("START_DONE")
+	defer func() {
+		log.G(ctx).WithError(err).Info("START_DONE")
+	}()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -386,9 +392,11 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (*ta
 	}, nil
 }
 
-func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (*taskAPI.DeleteResponse, error) {
+func (s *service) Delete(ctx context.Context, request *taskAPI.DeleteRequest) (resp *taskAPI.DeleteResponse, err error) {
 	log.G(ctx).WithField("request", request).Info("DELETE")
-	defer log.G(ctx).Info("DELETE_DONE")
+	defer func() {
+		log.G(ctx).WithError(err).Info("DELETE_DONE")
+	}()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -464,9 +472,11 @@ func (s *service) Checkpoint(ctx context.Context, request *taskAPI.CheckpointTas
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (*ptypes.Empty, error) {
+func (s *service) Kill(ctx context.Context, request *taskAPI.KillRequest) (resp *ptypes.Empty, err error) {
 	log.G(ctx).WithField("request", request).Info("KILL")
-	defer log.G(ctx).Info("KILL_DONE")
+	defer func() {
+		log.G(ctx).WithError(err).Info("KILL_DONE")
+	}()
 
 	c, err := s.getContainerL(request.ID)
 	if err != nil {
@@ -536,9 +546,11 @@ func (s *service) Exec(ctx context.Context, request *taskAPI.ExecProcessRequest)
 	return &ptypes.Empty{}, nil
 }
 
-func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyRequest) (*ptypes.Empty, error) {
+func (s *service) ResizePty(ctx context.Context, request *taskAPI.ResizePtyRequest) (resp *ptypes.Empty, err error) {
 	log.G(ctx).WithField("request", request).Info("RESIZEPTY")
-	defer log.G(ctx).Info("RESIZEPTY_DONE")
+	defer func() {
+		log.G(ctx).WithError(err).Info("RESIZEPTY_DONE")
+	}()
 
 	c, err := s.getContainerL(request.ID)
 	if err != nil {
@@ -584,9 +596,11 @@ func (s *service) Update(ctx context.Context, request *taskAPI.UpdateTaskRequest
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (*taskAPI.WaitResponse, error) {
+func (s *service) Wait(ctx context.Context, request *taskAPI.WaitRequest) (resp *taskAPI.WaitResponse, err error) {
 	log.G(ctx).WithField("request", request).Info("WAIT")
-	defer log.G(ctx).Info("WAIT_DONE")
+	defer func() {
+		log.G(ctx).WithError(err).Info("WAIT_DONE")
+	}()
 
 	c, err := s.getContainerL(request.ID)
 	if err != nil {
@@ -611,9 +625,11 @@ func (s *service) Stats(ctx context.Context, request *taskAPI.StatsRequest) (*ta
 	return nil, errdefs.ErrNotImplemented
 }
 
-func (s *service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) (*taskAPI.ConnectResponse, error) {
+func (s *service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) (resp *taskAPI.ConnectResponse, err error) {
 	log.G(ctx).WithField("request", request).Info("CONNECT")
-	defer log.G(ctx).Info("CONNECT_DONE")
+	defer func() {
+		log.G(ctx).WithError(err).Info("CONNECT_DONE")
+	}()
 
 	var pid int
 	if c, err := s.getContainerL(request.ID); err == nil {
@@ -628,9 +644,11 @@ func (s *service) Connect(ctx context.Context, request *taskAPI.ConnectRequest) 
 	}, nil
 }
 
-func (s *service) Shutdown(ctx context.Context, request *taskAPI.ShutdownRequest) (*ptypes.Empty, error) {
+func (s *service) Shutdown(ctx context.Context, request *taskAPI.ShutdownRequest) (resp *ptypes.Empty, err error) {
 	log.G(ctx).WithField("request", request).Info("SHUTDOWN")
-	defer log.G(ctx).Info("SHUTDOWN_DONE")
+	defer func() {
+		log.G(ctx).WithError(err).Info("SHUTDOWN_DONE")
+	}()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
