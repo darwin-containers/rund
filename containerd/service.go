@@ -310,25 +310,39 @@ func (s *service) Start(ctx context.Context, request *taskAPI.StartRequest) (res
 			return nil, err
 		}
 
-		dnsSocket, err := net.ListenUnix("unix", &net.UnixAddr{Name: c.dnsSocketPath, Net: "unix"})
+		var lc net.ListenConfig
+		dnsSocket, err := lc.Listen(ctx, "unix", c.dnsSocketPath)
 		if err != nil {
 			return nil, err
 		}
 
-		// TODO: We should stop this somehow?
+		unixSocket := dnsSocket.(*net.UnixListener)
+		if unixSocket == nil {
+			_ = dnsSocket.Close()
+			return nil, fmt.Errorf("not a unix socket: %s", dnsSocket)
+		}
+
 		go func() {
 			for {
-				con, err := dnsSocket.AcceptUnix()
+				con, err := unixSocket.AcceptUnix()
 				if err != nil {
 					return
 				}
 
-				pipe, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: "/var/run/mDNSResponder", Net: "unix"})
+				var dialer net.Dialer
+				pipe, err := dialer.DialContext(ctx, "unix", "/var/run/mDNSResponder")
 				if err != nil {
 					return
 				}
-				go unixSocketCopy(con, pipe)
-				go unixSocketCopy(pipe, con)
+
+				unixPipe := pipe.(*net.UnixConn)
+				if unixPipe == nil {
+					_ = pipe.Close()
+					return
+				}
+
+				go unixSocketCopy(con, unixPipe)
+				go unixSocketCopy(unixPipe, con)
 			}
 		}()
 	}
