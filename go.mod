@@ -9,7 +9,7 @@ require (
 	github.com/containerd/errdefs/pkg v0.3.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/log v0.1.0
-	github.com/containerd/plugin v1.0.0
+	github.com/containerd/plugin v1.1.0
 	github.com/containerd/ttrpc v1.2.8
 	github.com/containerd/typeurl/v2 v2.2.3
 	github.com/creack/pty v1.1.24
