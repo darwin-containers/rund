@@ -11,7 +11,7 @@ require (
 	github.com/containerd/log v0.1.0
 	github.com/containerd/plugin v1.1.0
 	github.com/containerd/ttrpc v1.2.9
-	github.com/containerd/typeurl/v2 v2.2.3
+	github.com/containerd/typeurl/v2 v2.3.0
 	github.com/creack/pty v1.1.24
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/stretchr/testify v1.11.1
@@ -27,7 +27,6 @@ require (
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containerd/platforms v1.0.0-rc.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/klauspost/compress v1.18.1 // indirect
