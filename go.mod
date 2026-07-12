@@ -3,8 +3,8 @@ module github.com/darwin-containers/rund
 go 1.25.0
 
 require (
-	github.com/containerd/containerd/api v1.10.0
-	github.com/containerd/containerd/v2 v2.2.0
+	github.com/containerd/containerd/api v1.9.0
+	github.com/containerd/containerd/v2 v2.1.6
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/errdefs/pkg v0.3.0
 	github.com/containerd/fifo v1.1.0
@@ -51,6 +51,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/containerd/containerd/v2 => github.com/darwin-containers/containerd/v2 v2.0.0-20251214124930-75029f1d4bce
+replace github.com/containerd/containerd/v2 => github.com/darwin-containers/containerd/v2 v2.0.0-20260712142009-3a65cb8a2dde
 
-replace github.com/containerd/containerd/api => github.com/darwin-containers/containerd/api v0.0.0-20251214124930-75029f1d4bce
+replace github.com/containerd/containerd/api => github.com/darwin-containers/containerd/api v0.0.0-20260712142009-3a65cb8a2dde

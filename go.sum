@@ -35,10 +35,10 @@ github.com/containerd/typeurl/v2 v2.2.3 h1:yNA/94zxWdvYACdYO8zofhrTVuQY73fFU1y++
 github.com/containerd/typeurl/v2 v2.2.3/go.mod h1:95ljDnPfD3bAbDJRugOiShd/DlAAsxGtUBhJxIn7SCk=
 github.com/creack/pty v1.1.24 h1:bJrF4RRfyJnbTJqzRLHzcGaZK1NeM5kTC9jGgovnR1s=
 github.com/creack/pty v1.1.24/go.mod h1:08sCNb52WyoAwi2QDyzUCTgcvVFhUzewun7wtTfvcwE=
-github.com/darwin-containers/containerd/api v0.0.0-20251214124930-75029f1d4bce h1:0zebLVBz/aH0+qoJ9b8ztowZzVXhXgFP0YBrKS7EQ9I=
-github.com/darwin-containers/containerd/api v0.0.0-20251214124930-75029f1d4bce/go.mod h1:NBm1OAk8ZL+LG8R0ceObGxT5hbUYj7CzTmR3xh0DlMM=
-github.com/darwin-containers/containerd/v2 v2.0.0-20251214124930-75029f1d4bce h1:NNPgEP6Fpqb3Np3f7aFNXDYzEqBeobkVqalVwDXLp4I=
-github.com/darwin-containers/containerd/v2 v2.0.0-20251214124930-75029f1d4bce/go.mod h1:YCMjKjA4ZA7egdHNi3/93bJR1+2oniYlnS+c0N62HdE=
+github.com/darwin-containers/containerd/api v0.0.0-20260712142009-3a65cb8a2dde h1:OHQ5h5vpzVeh3BDkF0lg7xBgbnSOnvs/0DEcXj9F7Zk=
+github.com/darwin-containers/containerd/api v0.0.0-20260712142009-3a65cb8a2dde/go.mod h1:GhghKFmTR3hNtyznBoQ0EMWr9ju5AqHjcZPsSpTKutI=
+github.com/darwin-containers/containerd/v2 v2.0.0-20260712142009-3a65cb8a2dde h1:WDJ18foMIR86RwSOgO9j1YhJeXtskuCcWcbd9PaYaPc=
+github.com/darwin-containers/containerd/v2 v2.0.0-20260712142009-3a65cb8a2dde/go.mod h1:LDh0O1QLwWxHp3qwykS2jGMSoWTSHKwiP5Z324hVyIo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -104,8 +104,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
-github.com/prometheus/procfs v0.16.1 h1:hZ15bTNuirocR6u0JZ6BAHHmwS1p8B4P6MRqxtzMyRg=
-github.com/prometheus/procfs v0.16.1/go.mod h1:teAbpZRB1iIAJYREa1LsoWUXykVXA1KlTmWl8x/U+Is=
+github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
+github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
