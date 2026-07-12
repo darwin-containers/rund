@@ -3,8 +3,8 @@ module github.com/darwin-containers/rund
 go 1.25
 
 require (
-	github.com/containerd/containerd/api v1.10.0
-	github.com/containerd/containerd/v2 v2.2.0
+	github.com/containerd/containerd/api v1.9.0
+	github.com/containerd/containerd/v2 v2.1.6
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/errdefs/pkg v0.3.0
 	github.com/containerd/fifo v1.1.0
@@ -42,15 +42,15 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
-	google.golang.org/grpc v1.76.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
+	google.golang.org/grpc v1.78.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/containerd/containerd/v2 => github.com/darwin-containers/containerd/v2 v2.0.0-20251214124930-75029f1d4bce
+replace github.com/containerd/containerd/v2 => github.com/darwin-containers/containerd/v2 v2.0.0-20260712142009-3a65cb8a2dde
 
-replace github.com/containerd/containerd/api => github.com/darwin-containers/containerd/api v0.0.0-20251214124930-75029f1d4bce
+replace github.com/containerd/containerd/api => github.com/darwin-containers/containerd/api v0.0.0-20260712142009-3a65cb8a2dde
